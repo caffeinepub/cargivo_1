@@ -1,0 +1,325 @@
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ChevronLeft } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { StatusBadge } from "../components/ds/StatusBadge";
+import type { SampleOrder } from "./sampleData";
+
+interface Props {
+  order: SampleOrder;
+  onBack: () => void;
+}
+
+const SAMPLE_SUPPLIERS = [
+  {
+    name: "Balkrishna Packaging",
+    contact: "+91 98123 45678",
+    state: "Maharashtra",
+    notes: "Specializes in wooden boxes. Lead time 5 days.",
+  },
+  {
+    name: "Gujarat Plastics Co",
+    contact: "+91 97234 56789",
+    state: "Gujarat",
+    notes: "Bulk plastic boxes. MOQ 100 units.",
+  },
+  {
+    name: "Indus Industrial Pack",
+    contact: "+91 96345 67890",
+    state: "Karnataka",
+    notes: "Custom industrial crates. Lead time 7-10 days.",
+  },
+];
+
+export function TeamOrderDetail({ order, onBack }: Props) {
+  const supplier = SAMPLE_SUPPLIERS[Number(order.id) % 3];
+
+  const [quotePrice, setQuotePrice] = useState("");
+  const [quoteNotes, setQuoteNotes] = useState("");
+  const [transportPartner, setTransportPartner] = useState("");
+  const [trackingLink, setTrackingLink] = useState("");
+
+  const handleStatusUpdate = (label: string) => {
+    toast.success(`Status updated to ${label}`);
+  };
+
+  const handleSendQuotation = () => {
+    if (!quotePrice) {
+      toast.error("Please enter a price");
+      return;
+    }
+    toast.success("Quotation sent successfully");
+    setQuotePrice("");
+    setQuoteNotes("");
+  };
+
+  const handleSaveTracking = () => {
+    if (!transportPartner && !trackingLink) {
+      toast.error("Please fill in tracking details");
+      return;
+    }
+    toast.success("Tracking info saved");
+  };
+
+  return (
+    <div
+      className="max-w-4xl mx-auto space-y-6"
+      data-ocid="team_order_detail.panel"
+    >
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mt-0.5"
+          data-ocid="team_order_detail.close_button"
+        >
+          <ChevronLeft size={16} />
+          Back to Orders
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold font-mono text-primary">
+          #CGV-00{order.id.toString()}
+        </h1>
+        <StatusBadge status={order.status} />
+        <span className="text-muted-foreground text-sm">{order.customer}</span>
+      </div>
+
+      {/* Section 1: Order Details */}
+      <div className="bg-white border border-border rounded-xl shadow-card p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">
+          Order Details
+        </h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Box Type
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {order.boxType}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Dimensions
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {order.dimensions ?? "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Quantity
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {order.qty} units
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Location
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {order.location ?? "—"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Supplier Info */}
+      <div className="bg-white border border-border rounded-xl shadow-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-foreground">
+            Supplier Info
+          </h2>
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+            Internal Use Only
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Supplier Name
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {supplier.name}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Contact
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {supplier.contact}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              State
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {supplier.state}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Notes
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {supplier.notes}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="btn-secondary text-sm"
+          data-ocid="team_order_detail.secondary_button"
+        >
+          Change Supplier
+        </button>
+      </div>
+
+      {/* Section 3: Quote Form */}
+      <div className="bg-white border border-border rounded-xl shadow-card p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">
+          Send Quotation
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <Label
+              htmlFor="quote-price"
+              className="text-sm font-medium text-foreground mb-1 block"
+            >
+              Price (₹)
+            </Label>
+            <input
+              id="quote-price"
+              type="number"
+              className="form-input"
+              placeholder="Enter price in ₹"
+              value={quotePrice}
+              onChange={(e) => setQuotePrice(e.target.value)}
+              data-ocid="team_order_detail.input"
+            />
+          </div>
+          <div>
+            <Label
+              htmlFor="quote-notes"
+              className="text-sm font-medium text-foreground mb-1 block"
+            >
+              Notes
+            </Label>
+            <Textarea
+              id="quote-notes"
+              className="form-input min-h-[80px]"
+              placeholder="Add notes for this quotation..."
+              value={quoteNotes}
+              onChange={(e) => setQuoteNotes(e.target.value)}
+              data-ocid="team_order_detail.textarea"
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleSendQuotation}
+            data-ocid="team_order_detail.submit_button"
+          >
+            Send Quotation
+          </button>
+        </div>
+      </div>
+
+      {/* Section 4: Status Update */}
+      <div className="bg-white border border-border rounded-xl shadow-card p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">
+          Update Status
+        </h2>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => handleStatusUpdate("Preparing Order")}
+            data-ocid="team_order_detail.secondary_button"
+          >
+            Preparing Order
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => handleStatusUpdate("Order Prepared")}
+          >
+            Order Prepared
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => handleStatusUpdate("In Transit")}
+          >
+            In Transit
+          </button>
+          <button
+            type="button"
+            onClick={() => handleStatusUpdate("Delivered")}
+            style={{}}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+          >
+            Delivered
+          </button>
+        </div>
+      </div>
+
+      {/* Section 5: Tracking */}
+      <div className="bg-white border border-border rounded-xl shadow-card p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">
+          Tracking
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <Label
+              htmlFor="transport-partner"
+              className="text-sm font-medium text-foreground mb-1 block"
+            >
+              Transport Partner
+            </Label>
+            <input
+              id="transport-partner"
+              type="text"
+              className="form-input"
+              placeholder="e.g. Blue Dart, Delhivery"
+              value={transportPartner}
+              onChange={(e) => setTransportPartner(e.target.value)}
+              data-ocid="team_order_detail.input"
+            />
+          </div>
+          <div>
+            <Label
+              htmlFor="tracking-link"
+              className="text-sm font-medium text-foreground mb-1 block"
+            >
+              Tracking Link
+            </Label>
+            <input
+              id="tracking-link"
+              type="text"
+              className="form-input"
+              placeholder="https://track.example.com/..."
+              value={trackingLink}
+              onChange={(e) => setTrackingLink(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleSaveTracking}
+            data-ocid="team_order_detail.save_button"
+          >
+            Save Tracking
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
