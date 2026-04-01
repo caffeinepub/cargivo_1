@@ -21,9 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserPlus } from "lucide-react";
+import { Eye, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { StatusBadge } from "../components/ds/StatusBadge";
+import { getQuoteRequests } from "../utils/quoteStore";
 
 const TEAM_MEMBERS_KEY = "cargivo_team_members";
 
@@ -65,6 +67,7 @@ export function AdminTeamMembers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [viewingMember, setViewingMember] = useState<TeamMember | null>(null);
 
   function persistMembers(updated: TeamMember[]) {
     setMembers(updated);
@@ -132,6 +135,15 @@ export function AdminTeamMembers() {
   const resetPassword = (email: string) => {
     toast.success(`Password reset link sent to ${email}`);
   };
+
+  // Detail modal data
+  const memberOrders = viewingMember
+    ? getQuoteRequests().filter((q) => q.assignedTo === viewingMember.name)
+    : [];
+  const inProgressOrders = memberOrders.filter(
+    (q) => q.status === "inProduction" || q.status === "shipped",
+  );
+  const completedOrders = memberOrders.filter((q) => q.status === "delivered");
 
   return (
     <div className="space-y-6" data-ocid="admin_team_members.panel">
@@ -206,6 +218,15 @@ export function AdminTeamMembers() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
+                        className="btn-secondary text-xs px-2 py-1 flex items-center gap-1"
+                        onClick={() => setViewingMember(m)}
+                        data-ocid={`admin_team_members.secondary_button.${i + 1}`}
+                      >
+                        <Eye size={12} />
+                        View
+                      </button>
+                      <button
+                        type="button"
                         className="btn-secondary text-xs px-2 py-1"
                         onClick={() => openEdit(m)}
                         data-ocid={`admin_team_members.edit_button.${i + 1}`}
@@ -228,7 +249,7 @@ export function AdminTeamMembers() {
                         type="button"
                         className="btn-ghost text-xs px-2 py-1 text-muted-foreground hover:text-foreground"
                         onClick={() => resetPassword(m.email)}
-                        data-ocid={`admin_team_members.secondary_button.${i + 1}`}
+                        data-ocid={`admin_team_members.button.${i + 1}`}
                       >
                         Reset Password
                       </button>
@@ -241,6 +262,7 @@ export function AdminTeamMembers() {
         </Table>
       </div>
 
+      {/* Add / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
           className="max-w-lg"
@@ -371,6 +393,167 @@ export function AdminTeamMembers() {
               data-ocid="admin_team_members.submit_button"
             >
               Save
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Member Detail Dialog */}
+      <Dialog
+        open={!!viewingMember}
+        onOpenChange={(open) => !open && setViewingMember(null)}
+      >
+        <DialogContent
+          className="max-w-2xl"
+          data-ocid="admin_team_members.modal"
+        >
+          <DialogHeader>
+            <DialogTitle>Team Member Details</DialogTitle>
+          </DialogHeader>
+
+          {viewingMember && (
+            <div className="max-h-[70vh] overflow-y-auto space-y-6 pr-1">
+              {/* Profile section */}
+              <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                  {viewingMember.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-foreground">
+                    {viewingMember.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {viewingMember.email}
+                  </p>
+                  {viewingMember.phone && (
+                    <p className="text-sm text-muted-foreground">
+                      {viewingMember.phone}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-medium">
+                      Team Member
+                    </span>
+                    {viewingMember.status === "active" ? (
+                      <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs font-medium">
+                        Inactive
+                      </span>
+                    )}
+                    {viewingMember.state && (
+                      <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full text-xs font-medium">
+                        📍 {viewingMember.state}
+                        {viewingMember.area ? ` — ${viewingMember.area}` : ""}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary stat cards */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white border border-border rounded-lg p-3 text-center shadow-sm">
+                  <div className="text-2xl font-bold text-primary">
+                    {memberOrders.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Total Assigned
+                  </div>
+                </div>
+                <div className="bg-white border border-border rounded-lg p-3 text-center shadow-sm">
+                  <div className="text-2xl font-bold text-orange-500">
+                    {inProgressOrders.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    In Progress
+                  </div>
+                </div>
+                <div className="bg-white border border-border rounded-lg p-3 text-center shadow-sm">
+                  <div className="text-2xl font-bold text-emerald-600">
+                    {completedOrders.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Completed
+                  </div>
+                </div>
+              </div>
+
+              {/* Assigned Orders table */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-2">
+                  Assigned Orders
+                </h4>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="text-xs">Order ID</TableHead>
+                        <TableHead className="text-xs">Box Type</TableHead>
+                        <TableHead className="text-xs">Qty</TableHead>
+                        <TableHead className="text-xs">Status</TableHead>
+                        <TableHead className="text-xs">Customer</TableHead>
+                        <TableHead className="text-xs">Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {memberOrders.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-muted-foreground text-sm"
+                            data-ocid="admin_team_members.empty_state"
+                          >
+                            No orders assigned yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        memberOrders.map((order, idx) => (
+                          <TableRow
+                            key={order.id}
+                            className={idx % 2 === 1 ? "bg-muted/20" : ""}
+                            data-ocid={`admin_team_members.row.${idx + 1}`}
+                          >
+                            <TableCell className="text-xs font-mono font-medium">
+                              {order.id}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {order.boxType}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {order.quantity}
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={order.status} />
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {order.customerName}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(order.submittedAt).toLocaleDateString(
+                                "en-IN",
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setViewingMember(null)}
+              data-ocid="admin_team_members.close_button"
+            >
+              Close
             </button>
           </DialogFooter>
         </DialogContent>
