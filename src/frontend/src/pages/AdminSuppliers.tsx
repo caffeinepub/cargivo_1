@@ -38,63 +38,7 @@ interface Supplier {
   notes: string;
 }
 
-const INITIAL_SUPPLIERS: Supplier[] = [
-  {
-    id: 1,
-    name: "Balkrishna Packaging",
-    contact: "+91 98123 45678",
-    email: "bk@balkrishna.in",
-    state: "Maharashtra",
-    area: "Pune",
-    category: "Wooden Box",
-    status: "active",
-    notes: "Reliable supplier, 5 day lead time",
-  },
-  {
-    id: 2,
-    name: "Gujarat Plastics Co",
-    contact: "+91 97234 56789",
-    email: "info@gujplastics.in",
-    state: "Gujarat",
-    area: "Ahmedabad",
-    category: "Plastic Box",
-    status: "active",
-    notes: "Bulk orders only, MOQ 100",
-  },
-  {
-    id: 3,
-    name: "Indus Industrial Pack",
-    contact: "+91 96345 67890",
-    email: "ops@induspack.in",
-    state: "Karnataka",
-    area: "Bangalore",
-    category: "Industrial Custom",
-    status: "active",
-    notes: "Custom crates, 7-10 day lead",
-  },
-  {
-    id: 4,
-    name: "Rajpack Solutions",
-    contact: "+91 95456 78901",
-    email: "raj@rajpack.in",
-    state: "Rajasthan",
-    area: "Jaipur",
-    category: "Wooden Box",
-    status: "inactive",
-    notes: "Currently on hold",
-  },
-  {
-    id: 5,
-    name: "TN Packaging Works",
-    contact: "+91 94567 89012",
-    email: "tn@tnpacking.in",
-    state: "Tamil Nadu",
-    area: "Chennai",
-    category: "Plastic Box",
-    status: "active",
-    notes: "Competitive pricing",
-  },
-];
+const INITIAL_SUPPLIERS: Supplier[] = [];
 
 const EMPTY_FORM = {
   name: "",

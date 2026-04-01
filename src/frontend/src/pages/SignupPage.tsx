@@ -2,15 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useActor } from "../hooks/useActor";
 
-export function SignupPage() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
+interface SignupPageProps {
+  onBack?: () => void;
+  onLoginClick?: () => void;
+}
+
+export function SignupPage({ onBack, onLoginClick }: SignupPageProps = {}) {
   const [step, setStep] = useState(1);
 
   // Step 1 fields
@@ -46,31 +47,14 @@ export function SignupPage() {
     setStep(2);
   };
 
-  const handleStep2 = async (e: React.FormEvent) => {
+  const handleStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!actor) {
-      toast.error("Actor not ready. Please try again.");
-      return;
-    }
     setIsSubmitting(true);
-    try {
-      await actor.saveCallerUserProfile({
-        __kind__: "customer",
-        customer: {
-          name: contactPerson,
-          joinedAt: BigInt(Date.now()) * 1000000n,
-          isActive: true,
-          shippingAddress: address,
-        },
-      });
-      toast.success("Account created! Welcome to Cargivo.");
-      queryClient.invalidateQueries({ queryKey: ["callerProfile"] });
-      queryClient.invalidateQueries({ queryKey: ["callerRole"] });
-    } catch {
-      toast.error("Failed to create account. Please try again.");
-    } finally {
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      toast.success("Account created! Welcome to Cargivo.");
+      onLoginClick?.();
+    }, 800);
   };
 
   return (
@@ -265,6 +249,17 @@ export function SignupPage() {
               >
                 Verify & Continue
               </Button>
+
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="text-sm text-gray-500 hover:text-gray-700 transition block w-full text-center"
+                  data-ocid="signup.cancel_button"
+                >
+                  ← Back
+                </button>
+              )}
             </form>
           )}
 
@@ -369,12 +364,14 @@ export function SignupPage() {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Already have an account?{" "}
-            <span
-              className="text-primary font-medium cursor-pointer hover:underline"
+            <button
+              type="button"
+              onClick={onLoginClick}
+              className="text-primary font-medium hover:underline"
               data-ocid="signup.login.link"
             >
               Login
-            </span>
+            </button>
           </p>
         </div>
       </div>

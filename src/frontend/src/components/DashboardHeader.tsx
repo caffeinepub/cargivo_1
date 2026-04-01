@@ -1,22 +1,21 @@
 import { Bell, Menu } from "lucide-react";
-import { UserRole } from "../backend";
 
 interface DashboardHeaderProps {
   userName: string;
-  role: UserRole;
+  role: "admin" | "customer" | "teamMember";
   onMenuClick?: () => void;
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  [UserRole.admin]: "Admin",
-  [UserRole.user]: "Customer",
-  [UserRole.guest]: "Team Member",
+  admin: "Admin",
+  customer: "Customer",
+  teamMember: "Team Member",
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  [UserRole.admin]: "bg-primary/10 text-primary",
-  [UserRole.user]: "bg-green-100 text-green-700",
-  [UserRole.guest]: "bg-orange-100 text-orange-700",
+  admin: "bg-primary/10 text-primary",
+  customer: "bg-green-100 text-green-700",
+  teamMember: "bg-orange-100 text-orange-700",
 };
 
 export function DashboardHeader({

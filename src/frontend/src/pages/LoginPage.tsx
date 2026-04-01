@@ -9,67 +9,65 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
-import { type DemoRole, setDemoRole } from "../demoMode";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { toast } from "sonner";
 
 interface LoginPageProps {
   onBack: () => void;
+  onSignupClick?: () => void;
+  onLoginSuccess?: () => void;
+  login: (
+    email: string,
+    password: string,
+  ) => { success: boolean; error?: string };
 }
 
 type View = "login" | "forgot" | "resetSent" | "internalLogin";
 type InternalRole = "admin" | "teamMember";
 
-function DemoButtons() {
-  function handleDemo(role: DemoRole) {
-    setDemoRole(role);
-    window.location.reload();
-  }
-
-  return (
-    <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">
-        Try a demo account
-      </p>
-      <div className="flex flex-col sm:flex-row gap-2">
-        <button
-          type="button"
-          onClick={() => handleDemo("customer")}
-          className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white transition"
-          data-ocid="login.customer_demo.button"
-        >
-          🧑 Customer Demo
-        </button>
-        <button
-          type="button"
-          onClick={() => handleDemo("admin")}
-          className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-white transition"
-          data-ocid="login.admin_demo.button"
-        >
-          🛡 Admin Demo
-        </button>
-        <button
-          type="button"
-          onClick={() => handleDemo("team")}
-          className="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-slate-600 hover:bg-slate-700 text-white transition"
-          data-ocid="login.team_demo.button"
-        >
-          👷 Team Member Demo
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function LoginPage({ onBack }: LoginPageProps) {
-  const { login, isLoggingIn } = useInternetIdentity();
+export function LoginPage({
+  onBack,
+  onSignupClick,
+  onLoginSuccess,
+  login,
+}: LoginPageProps) {
   const [view, setView] = useState<View>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [internalRole, setInternalRole] = useState<InternalRole>("admin");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  function handleForgotPassword() {
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setTimeout(() => {
+      const result = login(email, password);
+      setIsLoggingIn(false);
+      if (result.success) {
+        onLoginSuccess?.();
+      } else {
+        toast.error(result.error ?? "Invalid credentials");
+      }
+    }, 400);
+  }
+
+  function handleInternalLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setTimeout(() => {
+      const result = login(email, password);
+      setIsLoggingIn(false);
+      if (result.success) {
+        onLoginSuccess?.();
+      } else {
+        toast.error(result.error ?? "Invalid credentials");
+      }
+    }, 400);
+  }
+
+  function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
     setView("resetSent");
   }
 
@@ -79,7 +77,6 @@ export function LoginPage({ onBack }: LoginPageProps) {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
           {view === "login" && (
             <>
-              {/* Logo */}
               <div className="text-center mb-6">
                 <div className="inline-flex items-center gap-2 mb-3">
                   <span className="text-3xl">📦</span>
@@ -91,8 +88,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 <p className="text-sm text-gray-500">Access your account</p>
               </div>
 
-              {/* Form */}
-              <div className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                   <label
                     className="block text-sm font-medium text-gray-700 mb-1"
@@ -106,6 +102,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
+                    required
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
                     data-ocid="login.input"
                   />
@@ -127,6 +124,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
+                      required
                       className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
                       data-ocid="login.textarea"
                     />
@@ -134,9 +132,6 @@ export function LoginPage({ onBack }: LoginPageProps) {
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -153,7 +148,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 </div>
 
                 <Button
-                  onClick={() => login()}
+                  type="submit"
                   disabled={isLoggingIn}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white h-11 rounded-xl font-semibold text-sm mt-1"
                   data-ocid="login.submit_button"
@@ -167,21 +162,35 @@ export function LoginPage({ onBack }: LoginPageProps) {
                     "Login"
                   )}
                 </Button>
-              </div>
+              </form>
 
-              <div className="flex items-center gap-3 my-5">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400">or</span>
-                <div className="flex-1 h-px bg-gray-200" />
+              {/* Test credentials hint */}
+              <div className="mt-5 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs font-semibold text-blue-700 mb-2">
+                  Test Credentials
+                </p>
+                <div className="space-y-1 text-xs text-blue-600">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Customer:</span>
+                    <span>customer@cargivo.com / Customer@123</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Admin:</span>
+                    <span>admin@cargivo.com / Admin@123</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Team:</span>
+                    <span>team@cargivo.com / Team@123</span>
+                  </div>
+                </div>
               </div>
-
-              <DemoButtons />
 
               <p className="text-center text-sm text-gray-500 mt-5">
                 Don&apos;t have an account?{" "}
                 <button
                   type="button"
                   className="text-primary font-medium hover:underline"
+                  onClick={onSignupClick}
                 >
                   Signup
                 </button>
@@ -190,7 +199,11 @@ export function LoginPage({ onBack }: LoginPageProps) {
               <div className="text-center mt-4">
                 <button
                   type="button"
-                  onClick={() => setView("internalLogin")}
+                  onClick={() => {
+                    setEmail("");
+                    setPassword("");
+                    setView("internalLogin");
+                  }}
                   className="text-xs text-gray-400 hover:text-gray-600 transition"
                 >
                   Internal team login →
@@ -222,7 +235,6 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 </p>
               </div>
 
-              {/* Role toggle */}
               <div className="flex rounded-xl border border-gray-200 overflow-hidden mb-5">
                 <button
                   type="button"
@@ -248,7 +260,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <form onSubmit={handleInternalLogin} className="space-y-4">
                 <div>
                   <label
                     className="block text-sm font-medium text-gray-700 mb-1"
@@ -261,7 +273,12 @@ export function LoginPage({ onBack }: LoginPageProps) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@cargivo.in"
+                    placeholder={
+                      internalRole === "admin"
+                        ? "admin@cargivo.com"
+                        : "team@cargivo.com"
+                    }
+                    required
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
                     data-ocid="login.input"
                   />
@@ -281,6 +298,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
+                      required
                       className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
                     />
                     <button
@@ -294,7 +312,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 </div>
 
                 <Button
-                  onClick={() => login()}
+                  type="submit"
                   disabled={isLoggingIn}
                   className="w-full bg-primary hover:bg-primary/90 text-white h-11 rounded-xl font-semibold text-sm"
                   data-ocid="login.submit_button"
@@ -308,9 +326,23 @@ export function LoginPage({ onBack }: LoginPageProps) {
                     `Login as ${internalRole === "admin" ? "Admin" : "Team Member"}`
                   )}
                 </Button>
-              </div>
+              </form>
 
-              <DemoButtons />
+              <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs font-semibold text-blue-700 mb-2">
+                  Test Credentials
+                </p>
+                <div className="space-y-1 text-xs text-blue-600">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Admin:</span>
+                    <span>admin@cargivo.com / Admin@123</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Team Member:</span>
+                    <span>team@cargivo.com / Team@123</span>
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
@@ -340,7 +372,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>
                   <label
                     className="block text-sm font-medium text-gray-700 mb-1"
@@ -354,19 +386,19 @@ export function LoginPage({ onBack }: LoginPageProps) {
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="you@example.com"
+                    required
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
                     data-ocid="login.input"
                   />
                 </div>
-
                 <Button
-                  onClick={handleForgotPassword}
+                  type="submit"
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white h-11 rounded-xl font-semibold text-sm"
                   data-ocid="login.submit_button"
                 >
                   Send Reset Link
                 </Button>
-              </div>
+              </form>
             </>
           )}
 

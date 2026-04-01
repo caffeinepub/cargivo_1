@@ -22,6 +22,7 @@ import { useState } from "react";
 
 interface HomePageProps {
   onLoginClick: () => void;
+  onSignupClick?: () => void;
 }
 
 const HOW_IT_WORKS = [
@@ -113,7 +114,7 @@ const NAV_LINKS = [
   { label: "Box Types", href: "#box-types" },
 ];
 
-export function HomePage({ onLoginClick }: HomePageProps) {
+export function HomePage({ onLoginClick, onSignupClick }: HomePageProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const scrollTo = (href: string) => {
@@ -162,7 +163,7 @@ export function HomePage({ onLoginClick }: HomePageProps) {
             </button>
             <button
               type="button"
-              onClick={onLoginClick}
+              onClick={onSignupClick || onLoginClick}
               className="px-5 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-colors"
               data-ocid="nav.signup.primary_button"
             >
@@ -205,7 +206,7 @@ export function HomePage({ onLoginClick }: HomePageProps) {
               </button>
               <button
                 type="button"
-                onClick={onLoginClick}
+                onClick={onSignupClick || onLoginClick}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-colors"
                 data-ocid="nav.mobile_signup.primary_button"
               >

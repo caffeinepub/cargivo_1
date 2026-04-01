@@ -1,7 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, ImageIcon, UserCog, X } from "lucide-react";
-import { useState } from "react";
+import { Check, ChevronDown, ImageIcon, UserCog, X } from "lucide-react";
+import { useRef, useState } from "react";
 import type { SampleOrder } from "../pages/sampleData";
 import { StatusBadge } from "./StatusBadge";
 
@@ -9,6 +9,8 @@ interface Props {
   order: SampleOrder | null;
   open: boolean;
   onClose: () => void;
+  teamMembers?: string[];
+  onAssign?: (orderId: string, memberName: string) => void;
 }
 
 const TIMELINE_STEPS = [
@@ -66,9 +68,17 @@ function getStepState(
   return "pending";
 }
 
-export function AdminOrderDetailModal({ order, open, onClose }: Props) {
+export function AdminOrderDetailModal({
+  order,
+  open,
+  onClose,
+  teamMembers = [],
+  onAssign,
+}: Props) {
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+  const assignRef = useRef<HTMLDivElement>(null);
 
   if (!order) return null;
 
@@ -89,8 +99,23 @@ export function AdminOrderDetailModal({ order, open, onClose }: Props) {
     quantity: `${order.qty.toLocaleString()} units`,
   };
 
+  function handleAssignMember(name: string) {
+    if (onAssign) {
+      onAssign(order!.id.toString(), name);
+    }
+    setShowAssignDropdown(false);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          onClose();
+          setShowAssignDropdown(false);
+        }
+      }}
+    >
       <DialogContent
         className="max-w-2xl p-0 gap-0 flex flex-col overflow-hidden"
         style={{ maxHeight: "92vh" }}
@@ -209,14 +234,69 @@ export function AdminOrderDetailModal({ order, open, onClose }: Props) {
                       {order.assignedTo ?? "Not Assigned"}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    className="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
-                    data-ocid="admin_order_detail.assign.button"
-                  >
-                    <UserCog size={14} />
-                    {order.assignedTo ? "Change Assignment" : "Assign"}
-                  </button>
+                  <div className="relative" ref={assignRef}>
+                    <button
+                      type="button"
+                      className="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
+                      onClick={() => setShowAssignDropdown((v) => !v)}
+                      data-ocid="admin_order_detail.assign.button"
+                    >
+                      <UserCog size={14} />
+                      {order.assignedTo ? "Change Assignment" : "Assign"}
+                      <ChevronDown
+                        size={13}
+                        className={`transition-transform ${showAssignDropdown ? "rotate-180" : ""}`}
+                      />
+                    </button>
+
+                    {/* Assignment Dropdown */}
+                    {showAssignDropdown && (
+                      <div className="absolute right-0 top-full mt-1.5 w-56 bg-white border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                        {teamMembers.length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-muted-foreground">
+                            No team members available. Add team members first.
+                          </div>
+                        ) : (
+                          <>
+                            <div className="px-3 py-2 border-b border-border">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Select Team Member
+                              </p>
+                            </div>
+                            <ul className="py-1">
+                              {teamMembers.map((name) => (
+                                <li key={name}>
+                                  <button
+                                    type="button"
+                                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center gap-2 ${
+                                      order.assignedTo === name
+                                        ? "bg-blue-50 text-primary font-medium"
+                                        : "text-foreground"
+                                    }`}
+                                    onClick={() => handleAssignMember(name)}
+                                    data-ocid="admin_order_detail.assign.secondary_button"
+                                  >
+                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                      <span className="text-xs font-bold text-primary">
+                                        {name.charAt(0).toUpperCase()}
+                                      </span>
+                                    </div>
+                                    {name}
+                                    {order.assignedTo === name && (
+                                      <Check
+                                        size={13}
+                                        className="ml-auto text-primary"
+                                      />
+                                    )}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border">
                   <div>

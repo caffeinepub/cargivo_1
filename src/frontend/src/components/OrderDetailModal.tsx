@@ -60,7 +60,10 @@ export function OrderDetailModal({
     if (!actor || !newStatus) return;
     setIsUpdating(true);
     try {
-      await actor.updateOrderStatus(order.id, newStatus as OrderStatus);
+      await actor.updateOrderStatus(
+        BigInt(order.id as bigint),
+        newStatus as OrderStatus,
+      );
       toast.success("Order status updated");
       onRefresh?.();
       onClose();
@@ -75,7 +78,7 @@ export function OrderDetailModal({
     if (!actor) return;
     setIsAccepting(true);
     try {
-      await actor.acceptQuote(order.id);
+      await actor.acceptQuote(BigInt(order.id as bigint));
       toast.success("Quote accepted!");
       onRefresh?.();
       onClose();

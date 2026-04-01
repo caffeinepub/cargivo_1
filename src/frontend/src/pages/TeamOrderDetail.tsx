@@ -11,26 +11,7 @@ interface Props {
   onBack: () => void;
 }
 
-const SAMPLE_SUPPLIERS = [
-  {
-    name: "Balkrishna Packaging",
-    contact: "+91 98123 45678",
-    state: "Maharashtra",
-    notes: "Specializes in wooden boxes. Lead time 5 days.",
-  },
-  {
-    name: "Gujarat Plastics Co",
-    contact: "+91 97234 56789",
-    state: "Gujarat",
-    notes: "Bulk plastic boxes. MOQ 100 units.",
-  },
-  {
-    name: "Indus Industrial Pack",
-    contact: "+91 96345 67890",
-    state: "Karnataka",
-    notes: "Custom industrial crates. Lead time 7-10 days.",
-  },
-];
+const SAMPLE_SUPPLIERS: any[] = [];
 
 export function TeamOrderDetail({ order, onBack }: Props) {
   const supplier = SAMPLE_SUPPLIERS[Number(order.id) % 3];

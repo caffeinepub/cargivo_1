@@ -25,6 +25,8 @@ import { UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+const TEAM_MEMBERS_KEY = "cargivo_team_members";
+
 interface TeamMember {
   id: number;
   name: string;
@@ -36,58 +38,18 @@ interface TeamMember {
   status: "active" | "inactive";
 }
 
-const INITIAL_MEMBERS: TeamMember[] = [
-  {
-    id: 1,
-    name: "Rahul Verma",
-    email: "rahul@cargivo.in",
-    phone: "+91 98001 11111",
-    state: "Maharashtra",
-    area: "Pune West",
-    role: "team_member",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Priya Patel",
-    email: "priya@cargivo.in",
-    phone: "+91 97002 22222",
-    state: "Gujarat",
-    area: "GIDC Naroda",
-    role: "team_member",
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Arjun Menon",
-    email: "arjun@cargivo.in",
-    phone: "+91 96003 33333",
-    state: "Tamil Nadu",
-    area: "Ambattur Industrial Estate",
-    role: "team_member",
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "Sneha Reddy",
-    email: "sneha@cargivo.in",
-    phone: "+91 95004 44444",
-    state: "Telangana",
-    area: "Uppal Industrial Area",
-    role: "team_member",
-    status: "inactive",
-  },
-  {
-    id: 5,
-    name: "Vikram Singh",
-    email: "vikram@cargivo.in",
-    phone: "+91 94005 55555",
-    state: "Haryana",
-    area: "IMT Manesar",
-    role: "team_member",
-    status: "active",
-  },
-];
+function loadMembers(): TeamMember[] {
+  try {
+    const s = localStorage.getItem(TEAM_MEMBERS_KEY);
+    return s ? JSON.parse(s) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMembers(members: TeamMember[]) {
+  localStorage.setItem(TEAM_MEMBERS_KEY, JSON.stringify(members));
+}
 
 const EMPTY_FORM = {
   name: "",
@@ -99,10 +61,15 @@ const EMPTY_FORM = {
 };
 
 export function AdminTeamMembers() {
-  const [members, setMembers] = useState<TeamMember[]>(INITIAL_MEMBERS);
+  const [members, setMembers] = useState<TeamMember[]>(() => loadMembers());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  function persistMembers(updated: TeamMember[]) {
+    setMembers(updated);
+    saveMembers(updated);
+  }
 
   const openAdd = () => {
     setEditingId(null);
@@ -129,29 +96,37 @@ export function AdminTeamMembers() {
       return;
     }
     if (editingId !== null) {
-      setMembers((prev) =>
-        prev.map((m) => (m.id === editingId ? { ...m, ...form } : m)),
+      const updated = members.map((m) =>
+        m.id === editingId ? { ...m, ...form } : m,
       );
+      persistMembers(updated);
       toast.success("Member updated successfully");
     } else {
-      const newId = Math.max(...members.map((m) => m.id)) + 1;
-      setMembers((prev) => [
-        ...prev,
-        { id: newId, ...form, role: "team_member" },
-      ]);
+      const maxId =
+        members.length > 0 ? Math.max(...members.map((m) => m.id)) : 0;
+      const updated = [
+        ...members,
+        { id: maxId + 1, ...form, role: "team_member" },
+      ];
+      persistMembers(updated);
       toast.success("Member added successfully");
     }
     setDialogOpen(false);
   };
 
   const toggleStatus = (id: number) => {
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === id
-          ? { ...m, status: m.status === "active" ? "inactive" : "active" }
-          : m,
-      ),
+    const updated = members.map((m) =>
+      m.id === id
+        ? {
+            ...m,
+            status:
+              m.status === "active"
+                ? ("inactive" as const)
+                : ("active" as const),
+          }
+        : m,
     );
+    persistMembers(updated);
   };
 
   const resetPassword = (email: string) => {
@@ -190,64 +165,78 @@ export function AdminTeamMembers() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.map((m, i) => (
-              <TableRow
-                key={m.id}
-                className={i % 2 === 1 ? "bg-muted/20" : ""}
-                data-ocid={`admin_team_members.item.${i + 1}`}
-              >
-                <TableCell className="font-medium text-sm">{m.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {m.email}
-                </TableCell>
-                <TableCell className="text-sm">{m.phone}</TableCell>
-                <TableCell className="text-sm">{m.state}</TableCell>
-                <TableCell className="text-sm">{m.area}</TableCell>
-                <TableCell>
-                  {m.status === "active" ? (
-                    <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                      Active
-                    </span>
-                  ) : (
-                    <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs font-medium">
-                      Inactive
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="btn-secondary text-xs px-2 py-1"
-                      onClick={() => openEdit(m)}
-                      data-ocid={`admin_team_members.edit_button.${i + 1}`}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn-ghost text-xs px-2 py-1 ${
-                        m.status === "active"
-                          ? "text-red-500 hover:text-red-700"
-                          : "text-emerald-600 hover:text-emerald-800"
-                      }`}
-                      onClick={() => toggleStatus(m.id)}
-                      data-ocid={`admin_team_members.toggle.${i + 1}`}
-                    >
-                      {m.status === "active" ? "Deactivate" : "Activate"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost text-xs px-2 py-1 text-muted-foreground hover:text-foreground"
-                      onClick={() => resetPassword(m.email)}
-                      data-ocid={`admin_team_members.secondary_button.${i + 1}`}
-                    >
-                      Reset Password
-                    </button>
-                  </div>
+            {members.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="text-center py-12 text-muted-foreground"
+                  data-ocid="admin_team_members.empty_state"
+                >
+                  No team members yet. Click "Add Member" to get started.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              members.map((m, i) => (
+                <TableRow
+                  key={m.id}
+                  className={i % 2 === 1 ? "bg-muted/20" : ""}
+                  data-ocid={`admin_team_members.item.${i + 1}`}
+                >
+                  <TableCell className="font-medium text-sm">
+                    {m.name}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {m.email}
+                  </TableCell>
+                  <TableCell className="text-sm">{m.phone}</TableCell>
+                  <TableCell className="text-sm">{m.state}</TableCell>
+                  <TableCell className="text-sm">{m.area}</TableCell>
+                  <TableCell>
+                    {m.status === "active" ? (
+                      <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs font-medium">
+                        Inactive
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary text-xs px-2 py-1"
+                        onClick={() => openEdit(m)}
+                        data-ocid={`admin_team_members.edit_button.${i + 1}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-ghost text-xs px-2 py-1 ${
+                          m.status === "active"
+                            ? "text-red-500 hover:text-red-700"
+                            : "text-emerald-600 hover:text-emerald-800"
+                        }`}
+                        onClick={() => toggleStatus(m.id)}
+                        data-ocid={`admin_team_members.toggle.${i + 1}`}
+                      >
+                        {m.status === "active" ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost text-xs px-2 py-1 text-muted-foreground hover:text-foreground"
+                        onClick={() => resetPassword(m.email)}
+                        data-ocid={`admin_team_members.secondary_button.${i + 1}`}
+                      >
+                        Reset Password
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

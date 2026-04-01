@@ -18,8 +18,6 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
-import { UserRole } from "../backend";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 interface NavItem {
   id: string;
@@ -62,7 +60,7 @@ const TEAM_NAV: NavItem[] = [
 ];
 
 interface SidebarProps {
-  role: UserRole;
+  role: "admin" | "customer" | "teamMember";
   activeItem: string;
   onItemClick: (id: string) => void;
   userName: string;
@@ -75,21 +73,16 @@ export function Sidebar({
   userName,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { clear } = useInternetIdentity();
 
   const navItems =
-    role === UserRole.admin
+    role === "admin"
       ? ADMIN_NAV
-      : role === UserRole.user
+      : role === "customer"
         ? CUSTOMER_NAV
         : TEAM_NAV;
 
   const roleLabel =
-    role === UserRole.admin
-      ? "Admin"
-      : role === UserRole.user
-        ? "Customer"
-        : "Team";
+    role === "admin" ? "Admin" : role === "customer" ? "Customer" : "Team";
 
   return (
     <aside
@@ -163,7 +156,7 @@ export function Sidebar({
       <div className="p-2 border-t border-sidebar-border">
         <button
           type="button"
-          onClick={() => clear()}
+          onClick={() => onItemClick("logout")}
           data-ocid="sidebar.logout.button"
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-red-500/20 hover:text-red-300 transition-all ${
             collapsed ? "justify-center" : ""

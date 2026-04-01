@@ -25,195 +25,186 @@ import {
 import { useState } from "react";
 import { AdminOrderDetailModal } from "../components/AdminOrderDetailModal";
 import { StatusBadge } from "../components/ds/StatusBadge";
-import { SAMPLE_ORDERS, type SampleOrder } from "./sampleData";
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-function count(status: string | string[]) {
-  const statuses = Array.isArray(status) ? status : [status];
-  return SAMPLE_ORDERS.filter((o) => statuses.includes(o.status.toLowerCase()))
-    .length;
-}
-
-// ── Needs-Action cards ────────────────────────────────────────────────────────
-const ACTION_CARDS = [
-  {
-    label: "Not Assigned",
-    count: SAMPLE_ORDERS.filter((o) => !o.assignedTo).length,
-    border: "border-l-red-500",
-    icon: <UserX size={20} className="text-red-500" />,
-    bg: "bg-red-50",
-  },
-  {
-    label: "Quote Not Sent",
-    count: count(["assigned"]),
-    border: "border-l-orange-500",
-    icon: <PackageSearch size={20} className="text-orange-500" />,
-    bg: "bg-orange-50",
-  },
-  {
-    label: "Pending Approval",
-    count: count(["quoted"]),
-    border: "border-l-yellow-500",
-    icon: <Clock size={20} className="text-yellow-600" />,
-    bg: "bg-yellow-50",
-  },
-  {
-    label: "Advance Payment Verification",
-    count: SAMPLE_ORDERS.filter(
-      (o) => o.status === "accepted" && o.paymentSubmitted,
-    ).length,
-    border: "border-l-blue-500",
-    icon: <CreditCard size={20} className="text-blue-500" />,
-    bg: "bg-blue-50",
-  },
-  {
-    label: "Final Payment Verification",
-    count: count(["finalpaymentpending", "finalPaymentPending"]),
-    border: "border-l-purple-500",
-    icon: <CheckCircle2 size={20} className="text-purple-500" />,
-    bg: "bg-purple-50",
-  },
-  {
-    label: "Stuck Orders",
-    count: 1,
-    border: "border-l-gray-500",
-    icon: <AlertTriangle size={20} className="text-gray-500" />,
-    bg: "bg-gray-50",
-  },
-];
-
-// ── Summary card config ───────────────────────────────────────────────────────
-const SUMMARY_CARDS = [
-  {
-    label: "New Orders",
-    status: ["new"],
-    icon: <Package size={18} className="text-slate-600" />,
-    bg: "bg-slate-50",
-  },
-  {
-    label: "Assigned",
-    status: ["assigned"],
-    icon: <UserCheck size={18} className="text-blue-600" />,
-    bg: "bg-blue-50",
-  },
-  {
-    label: "Quotation Sent",
-    status: ["quoted"],
-    icon: <PackageSearch size={18} className="text-orange-600" />,
-    bg: "bg-orange-50",
-  },
-  {
-    label: "Pending Approval",
-    status: ["accepted"],
-    icon: <Clock size={18} className="text-yellow-600" />,
-    bg: "bg-yellow-50",
-  },
-  {
-    label: "Preparing",
-    status: ["advanceVerified", "preparing"],
-    icon: <Boxes size={18} className="text-indigo-600" />,
-    bg: "bg-indigo-50",
-  },
-  {
-    label: "In Transit",
-    status: ["inTransit"],
-    icon: <Truck size={18} className="text-cyan-600" />,
-    bg: "bg-cyan-50",
-  },
-  {
-    label: "Delivered",
-    status: ["delivered"],
-    icon: <PackageCheck size={18} className="text-emerald-600" />,
-    bg: "bg-emerald-50",
-  },
-  {
-    label: "Completed",
-    status: ["completed"],
-    icon: <CheckCircle2 size={18} className="text-green-600" />,
-    bg: "bg-green-50",
-  },
-  {
-    label: "Total Orders Done",
-    status: ["delivered", "completed"],
-    icon: <PackageCheck size={18} className="text-teal-600" />,
-    bg: "bg-teal-50",
-  },
-  {
-    label: "Total Pending",
-    status: [
-      "new",
-      "assigned",
-      "quoted",
-      "accepted",
-      "advanceVerified",
-      "preparing",
-      "inTransit",
-    ],
-    icon: <RefreshCcw size={18} className="text-rose-600" />,
-    bg: "bg-rose-50",
-  },
-];
+import { getQuoteRequests, updateAssignment } from "../utils/quoteStore";
+import type { SampleOrder } from "./sampleData";
 
 // ── State-wise table data ─────────────────────────────────────────────────────
-const STATE_ROWS = [
-  {
-    state: "Maharashtra",
-    new: 2,
-    assigned: 1,
-    quotePending: 1,
-    preparing: 1,
-    inTransit: 1,
-    completed: 2,
-  },
-  {
-    state: "Gujarat",
-    new: 1,
-    assigned: 0,
-    quotePending: 1,
-    preparing: 0,
-    inTransit: 0,
-    completed: 1,
-  },
-  {
-    state: "Karnataka",
-    new: 0,
-    assigned: 1,
-    quotePending: 0,
-    preparing: 0,
-    inTransit: 1,
-    completed: 0,
-  },
-  {
-    state: "Tamil Nadu",
-    new: 1,
-    assigned: 1,
-    quotePending: 0,
-    preparing: 1,
-    inTransit: 0,
-    completed: 0,
-  },
-  {
-    state: "Delhi",
-    new: 0,
-    assigned: 0,
-    quotePending: 1,
-    preparing: 0,
-    inTransit: 0,
-    completed: 1,
-  },
-  {
-    state: "Rajasthan",
-    new: 0,
-    assigned: 1,
-    quotePending: 0,
-    preparing: 1,
-    inTransit: 0,
-    completed: 0,
-  },
-];
+const STATE_ROWS: any[] = [];
+
+function getTeamMemberNames(): string[] {
+  try {
+    const s = localStorage.getItem("cargivo_team_members");
+    return s ? JSON.parse(s).map((m: any) => m.name) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function AdminDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<SampleOrder | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [teamMembers, setTeamMembers] = useState<string[]>(() =>
+    getTeamMemberNames(),
+  );
+
+  // Read all quote requests from shared localStorage store
+  const adminOrders: SampleOrder[] = getQuoteRequests().map((q) => ({
+    id: q.id,
+    status: q.status,
+    boxType: q.boxType,
+    qty: q.quantity,
+    amount: 0,
+    date: q.submittedAt.split("T")[0],
+    customer: q.customerName,
+    state: q.deliveryState,
+    customerCompany: q.customerCompany,
+    assignedTo: q.assignedTo,
+    paymentSubmitted: false,
+  }));
+
+  // consumed to trigger re-render
+  const _refresh = refreshKey;
+
+  function handleAssign(orderId: string, memberName: string) {
+    updateAssignment(orderId, memberName);
+    setRefreshKey((k) => k + 1);
+    setSelectedOrder((prev) =>
+      prev ? { ...prev, assignedTo: memberName } : prev,
+    );
+  }
+
+  function handleRefresh() {
+    setTeamMembers(getTeamMemberNames());
+    setRefreshKey((k) => k + 1);
+  }
+
+  function countOrders(status: string | string[]) {
+    const statuses = Array.isArray(status) ? status : [status];
+    return adminOrders.filter((o) => statuses.includes(o.status.toLowerCase()))
+      .length;
+  }
+
+  const ACTION_CARDS = [
+    {
+      label: "Not Assigned",
+      count: adminOrders.filter((o) => !o.assignedTo).length,
+      border: "border-l-red-500",
+      icon: <UserX size={20} className="text-red-500" />,
+      bg: "bg-red-50",
+    },
+    {
+      label: "Quote Not Sent",
+      count: countOrders(["assigned"]),
+      border: "border-l-orange-500",
+      icon: <PackageSearch size={20} className="text-orange-500" />,
+      bg: "bg-orange-50",
+    },
+    {
+      label: "Pending Approval",
+      count: countOrders(["quoted"]),
+      border: "border-l-yellow-500",
+      icon: <Clock size={20} className="text-yellow-600" />,
+      bg: "bg-yellow-50",
+    },
+    {
+      label: "Advance Payment Verification",
+      count: adminOrders.filter(
+        (o) => o.status === "accepted" && o.paymentSubmitted,
+      ).length,
+      border: "border-l-blue-500",
+      icon: <CreditCard size={20} className="text-blue-500" />,
+      bg: "bg-blue-50",
+    },
+    {
+      label: "Final Payment Verification",
+      count: countOrders(["finalpaymentpending", "finalPaymentPending"]),
+      border: "border-l-purple-500",
+      icon: <CheckCircle2 size={20} className="text-purple-500" />,
+      bg: "bg-purple-50",
+    },
+    {
+      label: "Stuck Orders",
+      count: 0,
+      border: "border-l-gray-500",
+      icon: <AlertTriangle size={20} className="text-gray-500" />,
+      bg: "bg-gray-50",
+    },
+  ];
+
+  const SUMMARY_CARDS = [
+    {
+      label: "New Orders",
+      status: ["new", "pending"],
+      icon: <Package size={18} className="text-slate-600" />,
+      bg: "bg-slate-50",
+    },
+    {
+      label: "Assigned",
+      status: ["assigned"],
+      icon: <UserCheck size={18} className="text-blue-600" />,
+      bg: "bg-blue-50",
+    },
+    {
+      label: "Quotation Sent",
+      status: ["quoted", "inReview"],
+      icon: <PackageSearch size={18} className="text-orange-600" />,
+      bg: "bg-orange-50",
+    },
+    {
+      label: "Pending Approval",
+      status: ["accepted"],
+      icon: <Clock size={18} className="text-yellow-600" />,
+      bg: "bg-yellow-50",
+    },
+    {
+      label: "Preparing",
+      status: ["advanceVerified", "preparing", "inProduction"],
+      icon: <Boxes size={18} className="text-indigo-600" />,
+      bg: "bg-indigo-50",
+    },
+    {
+      label: "In Transit",
+      status: ["inTransit", "shipped"],
+      icon: <Truck size={18} className="text-cyan-600" />,
+      bg: "bg-cyan-50",
+    },
+    {
+      label: "Delivered",
+      status: ["delivered"],
+      icon: <PackageCheck size={18} className="text-emerald-600" />,
+      bg: "bg-emerald-50",
+    },
+    {
+      label: "Completed",
+      status: ["completed"],
+      icon: <CheckCircle2 size={18} className="text-green-600" />,
+      bg: "bg-green-50",
+    },
+    {
+      label: "Total Orders Done",
+      status: ["delivered", "completed"],
+      icon: <PackageCheck size={18} className="text-teal-600" />,
+      bg: "bg-teal-50",
+    },
+    {
+      label: "Total Pending",
+      status: [
+        "new",
+        "pending",
+        "assigned",
+        "quoted",
+        "inReview",
+        "accepted",
+        "advanceVerified",
+        "preparing",
+        "inProduction",
+        "inTransit",
+        "shipped",
+      ],
+      icon: <RefreshCcw size={18} className="text-rose-600" />,
+      bg: "bg-rose-50",
+    },
+  ];
 
   return (
     <div className="space-y-6" data-ocid="admin_dashboard.panel">
@@ -231,6 +222,15 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            title="Refresh orders"
+            onClick={handleRefresh}
+            className="btn-ghost w-9 h-9 flex items-center justify-center rounded-xl"
+            data-ocid="admin_dashboard.refresh.button"
+          >
+            <RefreshCcw size={16} className="text-muted-foreground" />
+          </button>
           <button
             type="button"
             className="btn-ghost w-9 h-9 flex items-center justify-center rounded-xl relative"
@@ -295,7 +295,7 @@ export function AdminDashboard() {
         <h2 className="text-base font-bold text-foreground mb-3">Overview</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {SUMMARY_CARDS.map((card) => {
-            const c = SAMPLE_ORDERS.filter((o) =>
+            const c = adminOrders.filter((o) =>
               card.status.includes(o.status),
             ).length;
             return (
@@ -383,25 +383,26 @@ export function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {SAMPLE_ORDERS.length === 0 ? (
+              {adminOrders.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
                     className="text-center py-12 text-muted-foreground"
                     data-ocid="admin_dashboard.empty_state"
                   >
-                    No orders found.
+                    No orders found. Customer quote submissions will appear
+                    here.
                   </TableCell>
                 </TableRow>
               ) : (
-                SAMPLE_ORDERS.map((order, i) => (
+                adminOrders.map((order, i) => (
                   <TableRow
                     key={order.id.toString()}
                     className={i % 2 === 1 ? "bg-muted/20" : ""}
                     data-ocid={`admin_dashboard.item.${i + 1}`}
                   >
                     <TableCell className="font-mono text-sm font-medium text-primary">
-                      #CGV-00{order.id.toString()}
+                      #{order.id.toString()}
                     </TableCell>
                     <TableCell className="text-sm">{order.customer}</TableCell>
                     <TableCell className="text-sm">
@@ -434,6 +435,7 @@ export function AdminDashboard() {
                         <button
                           type="button"
                           className="btn-ghost text-xs px-2.5 py-1.5"
+                          onClick={() => setSelectedOrder(order)}
                           data-ocid={`admin_dashboard.assign.button.${i + 1}`}
                         >
                           Assign
@@ -459,6 +461,8 @@ export function AdminDashboard() {
         order={selectedOrder}
         open={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        teamMembers={teamMembers}
+        onAssign={handleAssign}
       />
     </div>
   );

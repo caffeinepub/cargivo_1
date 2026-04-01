@@ -39,7 +39,9 @@ function StatCard({
 }
 
 export function TeamDashboard() {
-  const [selectedOrderId, setSelectedOrderId] = useState<bigint | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<
+    string | number | bigint | null
+  >(null);
 
   const orders: SampleOrder[] = SAMPLE_ORDERS.filter((o) => !!o.assignedTo);
 
@@ -127,7 +129,7 @@ export function TeamDashboard() {
                   data-ocid={`team_dashboard.item.${i + 1}`}
                 >
                   <TableCell className="font-mono text-sm font-semibold text-primary">
-                    #CGV-00{order.id.toString()}
+                    #{order.id.toString()}
                   </TableCell>
                   <TableCell className="text-sm font-medium">
                     {order.customer}

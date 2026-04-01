@@ -6,7 +6,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useQuery } from "@tanstack/react-query";
 import {
   Package,
   PackageCheck,
@@ -18,8 +17,9 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { CustomerOrderDetailModal } from "../components/CustomerOrderDetailModal";
 import { StatusBadge } from "../components/ds/StatusBadge";
-import { useActor } from "../hooks/useActor";
-import { SAMPLE_ORDERS, type SampleOrder } from "./sampleData";
+import { useLocalAuth } from "../hooks/useLocalAuth";
+import { addQuoteRequest, getQuoteRequests } from "../utils/quoteStore";
+import type { SampleOrder } from "./sampleData";
 
 function StatCard({
   icon,
@@ -70,10 +70,11 @@ const INDIAN_STATES = [
 ];
 
 export function CustomerDashboard() {
-  const { actor, isFetching } = useActor();
+  const { currentUser } = useLocalAuth();
   const [selectedOrder, setSelectedOrder] = useState<SampleOrder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [boxType, setBoxType] = useState("Wooden Box");
   const [length, setLength] = useState("");
@@ -84,38 +85,27 @@ export function CustomerDashboard() {
   const [deliveryCity, setDeliveryCity] = useState("");
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
 
-  const { data: backendOrders, refetch } = useQuery({
-    queryKey: ["ownOrders"],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getOwnOrders();
-    },
-    enabled: !!actor && !isFetching,
-  });
+  const orders: SampleOrder[] = getQuoteRequests()
+    .filter((q) => q.customerId === (currentUser?.email ?? ""))
+    .map((q) => ({
+      id: q.id,
+      status: q.status,
+      boxType: q.boxType,
+      qty: q.quantity,
+      amount: 0,
+      date: q.submittedAt.split("T")[0],
+      customer: q.customerName,
+      state: q.deliveryState,
+      customerCompany: q.customerCompany,
+    }));
 
-  const orders: SampleOrder[] =
-    backendOrders && backendOrders.length > 0
-      ? backendOrders.map((o) => ({
-          id: o.id,
-          status: o.status,
-          boxType:
-            o.items[0]?.description?.split("|")[0]?.trim() ?? "Custom Box",
-          qty: Number(o.items[0]?.quantity ?? 0),
-          amount: Number(o.totalAmount),
-          date: new Date(Number(o.timestamp) / 1_000_000)
-            .toISOString()
-            .split("T")[0],
-          customer: "Me",
-        }))
-      : SAMPLE_ORDERS;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _refresh = refreshKey; // consumed to trigger re-render
 
   const stats = {
     total: orders.length,
-    pending: orders.filter(
-      (o) =>
-        o.status === "pending" ||
-        o.status === "inReview" ||
-        o.status === "quoted",
+    pending: orders.filter((o) =>
+      ["pending", "inReview", "quoted"].includes(o.status),
     ).length,
     transit: orders.filter((o) =>
       ["accepted", "inProduction", "shipped", "inTransit"].includes(o.status),
@@ -129,6 +119,19 @@ export function CustomerDashboard() {
     e.preventDefault();
     setIsSubmittingQuote(true);
     await new Promise((r) => setTimeout(r, 800));
+    addQuoteRequest({
+      customerId: currentUser?.email ?? "unknown",
+      customerName: currentUser?.name ?? "Customer",
+      customerCompany: currentUser?.company ?? "",
+      boxType,
+      length,
+      width,
+      height,
+      quantity: Number.parseInt(quantity),
+      deliveryState,
+      deliveryCity,
+      fileName: fileName ?? undefined,
+    });
     toast.success(
       "Quote request submitted! Our team will get back to you shortly.",
     );
@@ -141,7 +144,7 @@ export function CustomerDashboard() {
     setDeliveryCity("");
     setFileName(null);
     setIsSubmittingQuote(false);
-    refetch();
+    setRefreshKey((k) => k + 1);
   };
 
   return (
@@ -450,7 +453,7 @@ export function CustomerDashboard() {
                   data-ocid={`customer_dashboard.item.${i + 1}`}
                 >
                   <TableCell className="font-mono text-sm font-medium text-primary">
-                    #CGV-00{order.id.toString()}
+                    #{order.id.toString()}
                   </TableCell>
                   <TableCell>{order.boxType}</TableCell>
                   <TableCell>{order.qty.toLocaleString()}</TableCell>
