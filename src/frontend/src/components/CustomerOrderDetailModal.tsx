@@ -1,5 +1,4 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Check,
   CheckCircle2,
@@ -226,7 +225,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
         </div>
 
         {/* Scrollable Body */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto min-h-0">
           <div className="px-6 py-5 space-y-6">
             {/* Section 1: Order Details */}
             <section>
@@ -658,7 +657,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
               </motion.section>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -43,14 +43,15 @@ export function Modal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         className={cn(
-          "rounded-2xl p-0 overflow-hidden shadow-xl",
+          "rounded-2xl p-0 overflow-hidden shadow-xl flex flex-col",
           sizeClasses[size],
           className,
         )}
+        style={{ maxHeight: "90vh" }}
         data-ocid="modal.dialog"
       >
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div>
               <DialogTitle className="text-lg font-semibold text-foreground">
@@ -75,11 +76,13 @@ export function Modal({
         </DialogHeader>
 
         {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto max-h-[60vh]">{children}</div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+          {children}
+        </div>
 
         {/* Footer */}
         {footer && (
-          <DialogFooter className="px-6 py-4 border-t border-border bg-muted/30">
+          <DialogFooter className="px-6 py-4 border-t border-border bg-muted/30 flex-shrink-0">
             {footer}
           </DialogFooter>
         )}

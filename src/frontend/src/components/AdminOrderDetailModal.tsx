@@ -1,5 +1,4 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Check, ChevronDown, ImageIcon, UserCog, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { SampleOrder } from "../pages/sampleData";
@@ -149,7 +148,7 @@ export function AdminOrderDetailModal({
         </div>
 
         {/* Scrollable Body */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto min-h-0">
           <div className="px-6 py-5 space-y-6">
             {/* Section 1: Customer Info */}
             <section>
@@ -449,7 +448,7 @@ export function AdminOrderDetailModal({
               </div>
             </section>
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Sticky Footer */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-white">
