@@ -85,9 +85,6 @@ export function CustomerDashboard() {
   const [deliveryCity, setDeliveryCity] = useState("");
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _refresh = refreshKey; // consumed to trigger re-render
-
   const orders: SampleOrder[] = getQuoteRequests()
     .filter((q) => q.customerId === (currentUser?.email ?? ""))
     .map((q) => ({
@@ -95,23 +92,15 @@ export function CustomerDashboard() {
       status: q.status,
       boxType: q.boxType,
       qty: q.quantity,
-      // Use totalAmount from quoteBreakdown so payment calculations are correct
-      amount: q.quoteBreakdown?.totalAmount ?? 0,
+      amount: 0,
       date: q.submittedAt.split("T")[0],
       customer: q.customerName,
       state: q.deliveryState,
-      location: q.deliveryCity
-        ? `${q.deliveryCity}, ${q.deliveryState}`
-        : q.deliveryState,
-      dimensions:
-        q.length && q.width && q.height
-          ? `${q.length} × ${q.width} × ${q.height} cm`
-          : undefined,
       customerCompany: q.customerCompany,
-      assignedTo: q.assignedTo,
-      quoteBreakdown: q.quoteBreakdown,
-      quoteSentAt: q.quoteSentAt,
     }));
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _refresh = refreshKey; // consumed to trigger re-render
 
   const stats = {
     total: orders.length,

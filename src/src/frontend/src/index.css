@@ -1,0 +1,138 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    /* Background: white / light gray */
+    --background: 0.97 0.005 220;
+    --foreground: 0.15 0.01 264;
+    --card: 1 0 0;
+    --card-foreground: 0.15 0.01 264;
+    --popover: 1 0 0;
+    --popover-foreground: 0.15 0.01 264;
+    /* Primary = trust blue #1E40AF */
+    --primary: 0.43 0.18 264;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.92 0.01 220;
+    --secondary-foreground: 0.15 0.01 264;
+    --muted: 0.94 0.008 220;
+    --muted-foreground: 0.52 0.015 264;
+    /* Accent = orange #EA580C */
+    --accent: 0.63 0.22 40;
+    --accent-foreground: 1 0 0;
+    --destructive: 0.55 0.19 25;
+    --destructive-foreground: 1 0 0;
+    --border: 0.9 0.01 220;
+    --input: 0.9 0.01 220;
+    --ring: 0.43 0.18 264;
+    /* Charts */
+    --chart-1: 0.43 0.18 264;
+    --chart-2: 0.63 0.22 40;
+    --chart-3: 0.65 0.15 145;
+    --chart-4: 0.7 0.15 80;
+    --chart-5: 0.55 0.19 25;
+    /* Sidebar - deep blue navy */
+    --sidebar: 0.25 0.09 264;
+    --sidebar-foreground: 0.88 0.02 220;
+    --sidebar-primary: 0.63 0.22 40;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.3 0.1 264;
+    --sidebar-accent-foreground: 1 0 0;
+    --sidebar-border: 0.3 0.08 264;
+    --sidebar-ring: 0.63 0.22 40;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+}
+
+@layer components {
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+      bg-accent text-accent-foreground font-medium text-sm
+      hover:bg-accent/85 active:bg-accent/70
+      transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+      border border-primary text-primary bg-transparent font-medium text-sm
+      hover:bg-primary/10 active:bg-primary/15
+      transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+      text-muted-foreground bg-transparent font-medium text-sm
+      hover:bg-muted active:bg-muted/70
+      transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+      bg-destructive text-destructive-foreground font-medium text-sm
+      hover:bg-destructive/85 active:bg-destructive/70
+      transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* ── Cards ── */
+  .card-base {
+    @apply bg-card border border-border rounded-xl shadow-card;
+  }
+
+  /* ── Form Inputs ── */
+  .form-input {
+    @apply w-full border border-input rounded-lg px-3 py-2 text-sm
+      bg-white text-foreground placeholder:text-muted-foreground
+      focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring
+      transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* ── Tables ── */
+  .table-header-row {
+    @apply bg-muted/40;
+  }
+
+  .table-stripe {
+    @apply even:bg-muted/20;
+  }
+
+  /* ── Status Badges ── */
+  .badge-base {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border;
+  }
+
+  .badge-new {
+    @apply badge-base bg-gray-100 text-gray-600 border-gray-200;
+  }
+
+  .badge-pending {
+    @apply badge-base bg-orange-100 text-orange-700 border-orange-200;
+  }
+
+  .badge-approved {
+    @apply badge-base bg-blue-100 text-blue-700 border-blue-200;
+  }
+
+  .badge-delivered {
+    @apply badge-base bg-green-100 text-green-700 border-green-200;
+  }
+
+  .section-title {
+    @apply text-xs font-semibold text-muted-foreground uppercase tracking-widest;
+  }
+
+  .badge-rejected {
+    @apply badge-base bg-red-100 text-red-700 border-red-200;
+  }
+}

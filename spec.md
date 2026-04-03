@@ -1,21 +1,34 @@
 # Cargivo
 
 ## Current State
-Admin > Team Members page shows a table with Add/Edit/Deactivate/Reset Password actions. There is no way to view full details of a team member.
+- The "Send Quotation" form (base price, GST rate selector, delivery charges, live breakdown, send button) lives in `AdminOrderDetailModal.tsx` under Section 4.
+- `TeamOrderDetail.tsx` has a basic quote form with only a single price field and notes textarea.
+- `sendQuotation()` in `quoteStore.ts` saves the full breakdown and updates status to "quoted".
 
 ## Requested Changes (Diff)
 
 ### Add
-- "View" button in each team member row that opens a detail modal
-- Team Member Detail Modal showing: full profile info (name, email, phone, role, status, assigned state/area), assigned orders from the shared quote store, and a summary of order counts by status
+- Full quotation form (base price, GST rate, delivery charges, live breakdown preview, send button with disable-after-send behavior) to `TeamOrderDetail.tsx` Section 2, replacing the old simple form.
+- After sending, show a completion state with the breakdown summary in Team order detail.
 
 ### Modify
-- `AdminTeamMembers.tsx`: add view detail button and detail modal inline
+- `AdminOrderDetailModal.tsx`: Remove the full quotation input form (Section 4). Replace it with a read-only section that shows either:
+  - If quote has been sent: a green completion card with the breakdown (base price, GST, delivery, total)
+  - If quote not yet sent: a neutral info notice that the assigned team member will send the quotation
+- `TeamOrderDetail.tsx`: Replace the old simple quote form with the full breakdown form (same as what was in admin modal).
 
 ### Remove
-- Nothing
+- Old simple quote form (price + notes textarea) from `TeamOrderDetail.tsx`.
+- Quotation input form (inputs + send button) from `AdminOrderDetailModal.tsx`.
 
 ## Implementation Plan
-1. In `AdminTeamMembers.tsx`, add a `viewingMember` state and a detail modal
-2. Detail modal shows: member profile card (name, email, phone, state, area, status badge), summary stat cards (total assigned, in progress, completed), and a table of assigned orders pulled from `getQuoteRequests()` filtered by member name
-3. Add "View" button to each table row
+1. Update `TeamOrderDetail.tsx`:
+   - Add state: `basePrice`, `gstPercent`, `deliveryCharges`, `quoteSent`
+   - Import `sendQuotation` and `GST_OPTIONS` logic
+   - Replace Section 2 with full quotation form matching the admin modal design
+   - On send: call `sendQuotation(order.id.toString(), breakdown)`, set quoteSent=true
+   - Show completion state with breakdown after sending
+2. Update `AdminOrderDetailModal.tsx`:
+   - Remove all quotation form state and inputs (basePrice, gstPercent, deliveryCharges, related handlers)
+   - Replace Section 4 with read-only view: if quote sent show breakdown card, else show info note
+   - Keep `isQuoteAlreadySent` check based on order.quoteBreakdown or order status
