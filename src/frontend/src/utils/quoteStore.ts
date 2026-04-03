@@ -8,6 +8,14 @@ export type QuoteStatus =
   | "delivered"
   | "cancelled";
 
+export interface QuoteBreakdown {
+  basePrice: number;
+  gstPercent: number;
+  gstAmount: number;
+  deliveryCharges: number;
+  totalAmount: number;
+}
+
 export interface QuoteRequest {
   id: string;
   customerId: string;
@@ -24,6 +32,8 @@ export interface QuoteRequest {
   status: QuoteStatus;
   submittedAt: string;
   assignedTo?: string;
+  quoteBreakdown?: QuoteBreakdown;
+  quoteSentAt?: string;
 }
 
 const STORE_KEY = "cargivo_quote_requests";
@@ -66,6 +76,20 @@ export function updateAssignment(id: string, assignedTo: string): void {
   const idx = requests.findIndex((r) => r.id === id);
   if (idx !== -1) {
     requests[idx] = { ...requests[idx], assignedTo };
+    localStorage.setItem(STORE_KEY, JSON.stringify(requests));
+  }
+}
+
+export function sendQuotation(id: string, breakdown: QuoteBreakdown): void {
+  const requests = getQuoteRequests();
+  const idx = requests.findIndex((r) => r.id === id);
+  if (idx !== -1) {
+    requests[idx] = {
+      ...requests[idx],
+      status: "quoted",
+      quoteBreakdown: breakdown,
+      quoteSentAt: new Date().toISOString(),
+    };
     localStorage.setItem(STORE_KEY, JSON.stringify(requests));
   }
 }

@@ -118,7 +118,7 @@ export default function App() {
     if (role === "teamMember") {
       if (activeItem === "profile") return <ProfilePage user={currentUser!} />;
       if (activeItem === "dashboard" || activeItem === "assigned-orders")
-        return <TeamDashboard />;
+        return <TeamDashboard currentUserName={userName} />;
       // suppliers, quotations, tracking — coming soon
       return (
         <div className="flex items-center justify-center h-64 bg-white border border-border rounded-xl">

@@ -9,8 +9,9 @@ import {
 import { CheckCircle2, ClipboardList, PackageCheck, Truck } from "lucide-react";
 import { useState } from "react";
 import { StatusBadge } from "../components/ds/StatusBadge";
+import { getQuoteRequests } from "../utils/quoteStore";
 import { TeamOrderDetail } from "./TeamOrderDetail";
-import { SAMPLE_ORDERS, type SampleOrder } from "./sampleData";
+import type { SampleOrder } from "./sampleData";
 
 function StatCard({
   icon,
@@ -38,12 +39,35 @@ function StatCard({
   );
 }
 
-export function TeamDashboard() {
-  const [selectedOrderId, setSelectedOrderId] = useState<
-    string | number | bigint | null
-  >(null);
+interface Props {
+  currentUserName: string;
+}
 
-  const orders: SampleOrder[] = SAMPLE_ORDERS.filter((o) => !!o.assignedTo);
+export function TeamDashboard({ currentUserName }: Props) {
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  // Read assigned orders for this team member from shared store
+  const rawOrders = getQuoteRequests().filter(
+    (q) => q.assignedTo === currentUserName,
+  );
+
+  const orders: SampleOrder[] = rawOrders.map((q) => ({
+    id: q.id,
+    status: q.status,
+    boxType: q.boxType,
+    qty: q.quantity,
+    amount: 0,
+    date: q.submittedAt.split("T")[0],
+    customer: q.customerName,
+    customerCompany: q.customerCompany,
+    state: q.deliveryState,
+    location: `${q.deliveryCity}, ${q.deliveryState}`,
+    dimensions:
+      q.length && q.width && q.height
+        ? `${q.length} × ${q.width} × ${q.height} cm`
+        : undefined,
+    assignedTo: q.assignedTo,
+  }));
 
   const assigned = orders.length;
   const quotePending = orders.filter((o) =>
@@ -143,7 +167,7 @@ export function TeamDashboard() {
                   <TableCell>
                     <button
                       type="button"
-                      onClick={() => setSelectedOrderId(order.id)}
+                      onClick={() => setSelectedOrderId(order.id.toString())}
                       className="btn-secondary text-xs px-3 py-1.5"
                       data-ocid={`team_dashboard.edit_button.${i + 1}`}
                     >

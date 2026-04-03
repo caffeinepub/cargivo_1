@@ -1,7 +1,16 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Check, ChevronDown, ImageIcon, UserCog, X } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ImageIcon,
+  SendHorizonal,
+  UserCog,
+  X,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import type { SampleOrder } from "../pages/sampleData";
+import { sendQuotation } from "../utils/quoteStore";
 import { StatusBadge } from "./StatusBadge";
 
 interface Props {
@@ -10,6 +19,7 @@ interface Props {
   onClose: () => void;
   teamMembers?: string[];
   onAssign?: (orderId: string, memberName: string) => void;
+  onQuoteSent?: (orderId: string) => void;
 }
 
 const TIMELINE_STEPS = [
@@ -56,6 +66,8 @@ const ORDER_FIELDS = [
   { id: "quantity", label: "Quantity" },
 ];
 
+const GST_OPTIONS = [5, 12, 18, 28];
+
 function getStepState(
   stepKey: string,
   currentStatus: string,
@@ -73,13 +85,31 @@ export function AdminOrderDetailModal({
   onClose,
   teamMembers = [],
   onAssign,
+  onQuoteSent,
 }: Props) {
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const assignRef = useRef<HTMLDivElement>(null);
 
+  // Quotation form state
+  const [basePrice, setBasePrice] = useState("");
+  const [gstPercent, setGstPercent] = useState(18);
+  const [deliveryCharges, setDeliveryCharges] = useState("");
+  const [quoteSent, setQuoteSent] = useState(false);
+
   if (!order) return null;
+
+  // Determine if quote has already been sent (status is quoted or beyond)
+  const isQuoteAlreadySent =
+    quoteSent ||
+    STATUS_ORDER.indexOf(order.status.toLowerCase()) >=
+      STATUS_ORDER.indexOf("quoted");
+
+  const basePriceNum = Number.parseFloat(basePrice) || 0;
+  const gstAmt = Math.round((basePriceNum * gstPercent) / 100);
+  const deliveryNum = Number.parseFloat(deliveryCharges) || 0;
+  const totalAmount = basePriceNum + gstAmt + deliveryNum;
 
   const reqId = `#CGV-00${order.id.toString()}`;
 
@@ -103,6 +133,19 @@ export function AdminOrderDetailModal({
       onAssign(order!.id.toString(), name);
     }
     setShowAssignDropdown(false);
+  }
+
+  function handleSendQuotation() {
+    if (!basePriceNum || basePriceNum <= 0) return;
+    sendQuotation(order!.id.toString(), {
+      basePrice: basePriceNum,
+      gstPercent,
+      gstAmount: gstAmt,
+      deliveryCharges: deliveryNum,
+      totalAmount,
+    });
+    setQuoteSent(true);
+    if (onQuoteSent) onQuoteSent(order!.id.toString());
   }
 
   return (
@@ -310,7 +353,241 @@ export function AdminOrderDetailModal({
               </div>
             </section>
 
-            {/* Section 4: Payment Verification */}
+            {/* Section 4: Send Quotation */}
+            <section>
+              <div className="border-l-4 border-orange-500 pl-3 mb-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Send Quotation
+                </h3>
+              </div>
+
+              {isQuoteAlreadySent ? (
+                /* Quotation already sent — show completion state */
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 size={20} className="text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        Quotation Sent
+                      </p>
+                      <p className="text-xs text-emerald-600">
+                        Customer can now view and accept the quote
+                      </p>
+                    </div>
+                  </div>
+                  {/* Show the breakdown if we have it from the store */}
+                  {order.quoteBreakdown ? (
+                    <div className="bg-white border border-emerald-100 rounded-xl overflow-hidden">
+                      <div className="grid grid-cols-2 divide-x divide-border">
+                        <div className="p-3 border-b border-border">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            Base Price
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{order.quoteBreakdown.basePrice.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 border-b border-border">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            GST ({order.quoteBreakdown.gstPercent}%)
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{order.quoteBreakdown.gstAmount.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            Delivery Charges
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹
+                            {order.quoteBreakdown.deliveryCharges.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-orange-50">
+                          <p className="text-xs text-orange-600 mb-0.5">
+                            Total Amount
+                          </p>
+                          <p className="text-base font-extrabold text-orange-600">
+                            ₹{order.quoteBreakdown.totalAmount.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : totalAmount > 0 ? (
+                    <div className="bg-white border border-emerald-100 rounded-xl overflow-hidden">
+                      <div className="grid grid-cols-2 divide-x divide-border">
+                        <div className="p-3 border-b border-border">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            Base Price
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{basePriceNum.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 border-b border-border">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            GST ({gstPercent}%)
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{gstAmt.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            Delivery Charges
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{deliveryNum.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-orange-50">
+                          <p className="text-xs text-orange-600 mb-0.5">
+                            Total Amount
+                          </p>
+                          <p className="text-base font-extrabold text-orange-600">
+                            ₹{totalAmount.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                /* Quotation form */
+                <div className="bg-white border border-border rounded-xl p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Base Price */}
+                    <div>
+                      <label
+                        htmlFor="base-price-input"
+                        className="block text-xs font-medium text-foreground mb-1.5"
+                      >
+                        Base Price (₹)
+                      </label>
+                      <input
+                        id="base-price-input"
+                        type="number"
+                        min="0"
+                        className="form-input w-full"
+                        placeholder="e.g. 50000"
+                        value={basePrice}
+                        onChange={(e) => setBasePrice(e.target.value)}
+                        data-ocid="admin_order_detail.base_price.input"
+                      />
+                    </div>
+
+                    {/* GST */}
+                    <div>
+                      <label
+                        htmlFor="gst-select"
+                        className="block text-xs font-medium text-foreground mb-1.5"
+                      >
+                        GST Rate
+                      </label>
+                      <select
+                        id="gst-select"
+                        className="form-input w-full"
+                        value={gstPercent}
+                        onChange={(e) => setGstPercent(Number(e.target.value))}
+                        data-ocid="admin_order_detail.gst.select"
+                      >
+                        {GST_OPTIONS.map((g) => (
+                          <option key={g} value={g}>
+                            {g}%
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Delivery Charges */}
+                    <div>
+                      <label
+                        htmlFor="delivery-input"
+                        className="block text-xs font-medium text-foreground mb-1.5"
+                      >
+                        Delivery Charges (₹)
+                      </label>
+                      <input
+                        id="delivery-input"
+                        type="number"
+                        min="0"
+                        className="form-input w-full"
+                        placeholder="e.g. 2000"
+                        value={deliveryCharges}
+                        onChange={(e) => setDeliveryCharges(e.target.value)}
+                        data-ocid="admin_order_detail.delivery.input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Live Breakdown Preview */}
+                  {basePriceNum > 0 && (
+                    <div className="bg-muted/30 border border-border rounded-xl overflow-hidden">
+                      <div className="px-4 py-2.5 border-b border-border bg-muted/40">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Quotation Breakdown
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
+                        <div className="p-3">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            Base Price
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{basePriceNum.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            GST ({gstPercent}%)
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{gstAmt.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3">
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            Delivery
+                          </p>
+                          <p className="text-sm font-bold text-foreground">
+                            ₹{deliveryNum.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-orange-50">
+                          <p className="text-xs text-orange-600 mb-0.5">
+                            Total
+                          </p>
+                          <p className="text-sm font-extrabold text-orange-600">
+                            ₹{totalAmount.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-primary w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={basePriceNum <= 0}
+                    onClick={handleSendQuotation}
+                    data-ocid="admin_order_detail.send_quote.button"
+                  >
+                    <SendHorizonal size={15} />
+                    Send Quotation to Customer
+                  </button>
+                  {basePriceNum <= 0 && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      Enter base price to enable sending
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Section 5: Payment Verification */}
             {order.paymentSubmitted && (
               <section>
                 <div className="border-l-4 border-yellow-400 pl-3 mb-3">
@@ -383,7 +660,7 @@ export function AdminOrderDetailModal({
               </section>
             )}
 
-            {/* Section 5: Order Progress */}
+            {/* Section 6: Order Progress */}
             <section>
               <div className="border-l-4 border-muted pl-3 mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
@@ -459,13 +736,6 @@ export function AdminOrderDetailModal({
             data-ocid="admin_order_detail.footer.close_button"
           >
             Close
-          </button>
-          <button
-            type="button"
-            className="btn-primary text-sm px-6 py-2"
-            data-ocid="admin_order_detail.footer.save_button"
-          >
-            Save Changes
           </button>
         </div>
       </DialogContent>

@@ -11,11 +11,7 @@ interface Props {
   onBack: () => void;
 }
 
-const SAMPLE_SUPPLIERS: any[] = [];
-
 export function TeamOrderDetail({ order, onBack }: Props) {
-  const supplier = SAMPLE_SUPPLIERS[Number(order.id) % 3];
-
   const [quotePrice, setQuotePrice] = useState("");
   const [quoteNotes, setQuoteNotes] = useState("");
   const [transportPartner, setTransportPartner] = useState("");
@@ -63,10 +59,15 @@ export function TeamOrderDetail({ order, onBack }: Props) {
 
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold font-mono text-primary">
-          #CGV-00{order.id.toString()}
+          #{order.id.toString()}
         </h1>
         <StatusBadge status={order.status} />
         <span className="text-muted-foreground text-sm">{order.customer}</span>
+        {order.customerCompany && (
+          <span className="text-muted-foreground text-sm">
+            — {order.customerCompany}
+          </span>
+        )}
       </div>
 
       {/* Section 1: Order Details */}
@@ -101,69 +102,30 @@ export function TeamOrderDetail({ order, onBack }: Props) {
           </div>
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              Location
+              Delivery Location
             </p>
             <p className="text-sm font-medium text-foreground">
-              {order.location ?? "—"}
+              {order.location ?? order.state ?? "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Order Date
+            </p>
+            <p className="text-sm font-medium text-foreground">{order.date}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+              Assigned To
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {order.assignedTo ?? "—"}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Section 2: Supplier Info */}
-      <div className="bg-white border border-border rounded-xl shadow-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-foreground">
-            Supplier Info
-          </h2>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-            Internal Use Only
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              Supplier Name
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              {supplier.name}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              Contact
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              {supplier.contact}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              State
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              {supplier.state}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              Notes
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              {supplier.notes}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="btn-secondary text-sm"
-          data-ocid="team_order_detail.secondary_button"
-        >
-          Change Supplier
-        </button>
-      </div>
-
-      {/* Section 3: Quote Form */}
+      {/* Section 2: Quote Form */}
       <div className="bg-white border border-border rounded-xl shadow-card p-6">
         <h2 className="text-base font-semibold text-foreground mb-4">
           Send Quotation
@@ -213,7 +175,7 @@ export function TeamOrderDetail({ order, onBack }: Props) {
         </div>
       </div>
 
-      {/* Section 4: Status Update */}
+      {/* Section 3: Status Update */}
       <div className="bg-white border border-border rounded-xl shadow-card p-6">
         <h2 className="text-base font-semibold text-foreground mb-4">
           Update Status
@@ -244,7 +206,6 @@ export function TeamOrderDetail({ order, onBack }: Props) {
           <button
             type="button"
             onClick={() => handleStatusUpdate("Delivered")}
-            style={{}}
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
           >
             Delivered
@@ -252,7 +213,7 @@ export function TeamOrderDetail({ order, onBack }: Props) {
         </div>
       </div>
 
-      {/* Section 5: Tracking */}
+      {/* Section 4: Tracking */}
       <div className="bg-white border border-border rounded-xl shadow-card p-6">
         <h2 className="text-base font-semibold text-foreground mb-4">
           Tracking

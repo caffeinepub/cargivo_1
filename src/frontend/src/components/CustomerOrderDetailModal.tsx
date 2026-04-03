@@ -178,8 +178,9 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
   const showInvoice = isFinalStage;
 
   const reqId = `#CGV-00${order.id.toString()}`;
-  const advance = Math.round(order.amount / 2);
-  const remaining = order.amount - advance;
+  const totalAmount = order.amount || 0;
+  const advance = Math.round(totalAmount / 2);
+  const remaining = totalAmount - advance;
 
   const orderDetails = [
     { label: "Box Type", value: order.boxType },
@@ -311,28 +312,76 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
               </motion.section>
             )}
 
-            {/* Quote Section */}
+            {/* Quote Section — shows breakdown when quotation is sent */}
             {isQuoted && (
               <motion.section
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <h3 className="section-title mb-3">Quote</h3>
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="text-xs text-orange-600 font-medium mb-1">
-                        Quote Amount
-                      </p>
-                      <p className="text-3xl font-bold text-orange-600">
-                        ₹{order.amount.toLocaleString()}
-                      </p>
+                <h3 className="section-title mb-3">Quotation</h3>
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-4">
+                  {/* Breakdown table */}
+                  {order.quoteBreakdown ? (
+                    <>
+                      <div className="bg-white border border-orange-100 rounded-xl overflow-hidden">
+                        <div className="grid grid-cols-2 divide-x divide-border">
+                          <div className="p-3 border-b border-border">
+                            <p className="text-xs text-muted-foreground mb-0.5">
+                              Base Price
+                            </p>
+                            <p className="text-base font-bold text-foreground">
+                              ₹{order.quoteBreakdown.basePrice.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-3 border-b border-border">
+                            <p className="text-xs text-muted-foreground mb-0.5">
+                              GST ({order.quoteBreakdown.gstPercent}%)
+                            </p>
+                            <p className="text-base font-bold text-foreground">
+                              ₹{order.quoteBreakdown.gstAmount.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-3">
+                            <p className="text-xs text-muted-foreground mb-0.5">
+                              Delivery Charges
+                            </p>
+                            <p className="text-base font-bold text-foreground">
+                              ₹
+                              {order.quoteBreakdown.deliveryCharges.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-orange-50">
+                            <p className="text-xs text-orange-600 mb-0.5">
+                              Total Amount
+                            </p>
+                            <p className="text-xl font-extrabold text-orange-600">
+                              ₹
+                              {order.quoteBreakdown.totalAmount.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="inline-block text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full">
+                        Valid for 3 days
+                      </span>
+                    </>
+                  ) : (
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="text-xs text-orange-600 font-medium mb-1">
+                          Quote Amount
+                        </p>
+                        <p className="text-3xl font-bold text-orange-600">
+                          ₹{totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                      <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                        Valid for 3 days
+                      </span>
                     </div>
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-                      Valid for 3 days
-                    </span>
-                  </div>
-                  <div className="flex gap-2 pt-2">
+                  )}
+
+                  <div className="flex gap-2 pt-1">
                     <button
                       type="button"
                       className="btn-primary flex-1 py-2 text-sm"
@@ -373,7 +422,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                       Total Quote
                     </p>
                     <p className="text-xl font-bold text-foreground">
-                      ₹{order.amount.toLocaleString()}
+                      ₹{totalAmount.toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-primary/8 border border-primary/20 rounded-xl p-4">

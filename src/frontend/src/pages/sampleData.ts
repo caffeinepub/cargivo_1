@@ -1,3 +1,5 @@
+import type { QuoteBreakdown } from "../utils/quoteStore";
+
 export interface SampleOrder {
   id: string | bigint | number;
   status: string;
@@ -17,6 +19,8 @@ export interface SampleOrder {
   area?: string;
   paymentSubmitted?: boolean;
   paymentRef?: string;
+  quoteBreakdown?: QuoteBreakdown;
+  quoteSentAt?: string;
 }
 
 export const SAMPLE_ORDERS: SampleOrder[] = [];

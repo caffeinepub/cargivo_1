@@ -53,13 +53,15 @@ export function AdminDashboard() {
     status: q.status,
     boxType: q.boxType,
     qty: q.quantity,
-    amount: 0,
+    amount: q.quoteBreakdown ? q.quoteBreakdown.totalAmount : 0,
     date: q.submittedAt.split("T")[0],
     customer: q.customerName,
     state: q.deliveryState,
     customerCompany: q.customerCompany,
     assignedTo: q.assignedTo,
     paymentSubmitted: false,
+    quoteBreakdown: q.quoteBreakdown,
+    quoteSentAt: q.quoteSentAt,
   }));
 
   // consumed to trigger re-render
@@ -70,6 +72,16 @@ export function AdminDashboard() {
     setRefreshKey((k) => k + 1);
     setSelectedOrder((prev) =>
       prev ? { ...prev, assignedTo: memberName } : prev,
+    );
+  }
+
+  function handleQuoteSent(orderId: string) {
+    setRefreshKey((k) => k + 1);
+    // Update the selected order's status so modal reflects change
+    setSelectedOrder((prev) =>
+      prev && prev.id.toString() === orderId
+        ? { ...prev, status: "quoted" }
+        : prev,
     );
   }
 
@@ -463,6 +475,7 @@ export function AdminDashboard() {
         onClose={() => setSelectedOrder(null)}
         teamMembers={teamMembers}
         onAssign={handleAssign}
+        onQuoteSent={handleQuoteSent}
       />
     </div>
   );
