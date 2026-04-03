@@ -3,9 +3,14 @@ export type QuoteStatus =
   | "inReview"
   | "quoted"
   | "accepted"
+  | "advanceVerified"
+  | "preparing"
   | "inProduction"
+  | "inTransit"
   | "shipped"
   | "delivered"
+  | "finalPaymentPending"
+  | "completed"
   | "cancelled";
 
 export interface QuoteBreakdown {
@@ -34,6 +39,10 @@ export interface QuoteRequest {
   assignedTo?: string;
   quoteBreakdown?: QuoteBreakdown;
   quoteSentAt?: string;
+  advancePaymentRef?: string;
+  advancePaymentFile?: string;
+  finalPaymentRef?: string;
+  finalPaymentFile?: string;
 }
 
 const STORE_KEY = "cargivo_quote_requests";
@@ -92,4 +101,50 @@ export function sendQuotation(id: string, breakdown: QuoteBreakdown): void {
     };
     localStorage.setItem(STORE_KEY, JSON.stringify(requests));
   }
+}
+
+export function acceptQuote(id: string): void {
+  updateQuoteStatus(id, "accepted");
+}
+
+export function submitAdvancePayment(
+  id: string,
+  ref: string,
+  fileName: string,
+): void {
+  const requests = getQuoteRequests();
+  const idx = requests.findIndex((r) => r.id === id);
+  if (idx !== -1) {
+    requests[idx] = {
+      ...requests[idx],
+      advancePaymentRef: ref,
+      advancePaymentFile: fileName,
+    };
+    localStorage.setItem(STORE_KEY, JSON.stringify(requests));
+  }
+}
+
+export function submitFinalPayment(
+  id: string,
+  ref: string,
+  fileName: string,
+): void {
+  const requests = getQuoteRequests();
+  const idx = requests.findIndex((r) => r.id === id);
+  if (idx !== -1) {
+    requests[idx] = {
+      ...requests[idx],
+      finalPaymentRef: ref,
+      finalPaymentFile: fileName,
+    };
+    localStorage.setItem(STORE_KEY, JSON.stringify(requests));
+  }
+}
+
+export function approveAdvancePayment(id: string): void {
+  updateQuoteStatus(id, "advanceVerified");
+}
+
+export function approveFinalPayment(id: string): void {
+  updateQuoteStatus(id, "completed");
 }

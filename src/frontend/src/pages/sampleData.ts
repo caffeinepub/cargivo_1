@@ -1,4 +1,4 @@
-import type { QuoteBreakdown } from "../utils/quoteStore";
+import type { PaymentInfo, QuoteBreakdown } from "../utils/quoteStore";
 
 export interface SampleOrder {
   id: string | bigint | number;
@@ -19,6 +19,7 @@ export interface SampleOrder {
   area?: string;
   paymentSubmitted?: boolean;
   paymentRef?: string;
+  paymentInfo?: PaymentInfo;
   quoteBreakdown?: QuoteBreakdown;
   quoteSentAt?: string;
 }

@@ -21,11 +21,14 @@ interface Props {
   order: SampleOrder | null;
   open: boolean;
   onClose: () => void;
+  onAcceptQuote?: (orderId: string) => void;
+  onSubmitAdvance?: (orderId: string, ref: string, file: string) => void;
+  onSubmitFinal?: (orderId: string, ref: string, file: string) => void;
 }
 
 const TIMELINE_STEPS = [
-  { key: "new", label: "New Order" },
-  { key: "assigned", label: "Assigned" },
+  { key: "pending", label: "New Order" },
+  { key: "inReview", label: "Assigned" },
   { key: "quoted", label: "Quotation Sent" },
   { key: "accepted", label: "Quote Accepted" },
   { key: "advanceVerified", label: "Advance Payment Verified" },
@@ -37,13 +40,15 @@ const TIMELINE_STEPS = [
 ];
 
 const STATUS_ORDER = [
-  "new",
-  "assigned",
+  "pending",
+  "inReview",
   "quoted",
   "accepted",
   "advanceVerified",
   "preparing",
+  "inProduction",
   "inTransit",
+  "shipped",
   "delivered",
   "finalPaymentPending",
   "completed",
@@ -62,7 +67,7 @@ function getStepState(
   currentStatus: string,
 ): "completed" | "current" | "pending" {
   const stepIdx = STATUS_ORDER.indexOf(stepKey);
-  const currentIdx = STATUS_ORDER.indexOf(currentStatus.toLowerCase());
+  const currentIdx = STATUS_ORDER.indexOf(currentStatus);
   if (stepIdx < currentIdx) return "completed";
   if (stepIdx === currentIdx) return "current";
   return "pending";
@@ -75,6 +80,7 @@ function PaymentForm({
   onFileChange,
   submitLabel,
   submitOcid,
+  onSubmit,
 }: {
   refValue: string;
   onRefChange: (v: string) => void;
@@ -82,6 +88,7 @@ function PaymentForm({
   onFileChange: (name: string | null) => void;
   submitLabel: string;
   submitOcid: string;
+  onSubmit: () => void;
 }) {
   return (
     <div className="space-y-3">
@@ -135,6 +142,7 @@ function PaymentForm({
         type="button"
         className="btn-primary w-full py-3 text-sm font-semibold"
         data-ocid={submitOcid}
+        onClick={onSubmit}
       >
         {submitLabel}
       </button>
@@ -146,7 +154,14 @@ function PaymentForm({
   );
 }
 
-export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
+export function CustomerOrderDetailModal({
+  order,
+  open,
+  onClose,
+  onAcceptQuote,
+  onSubmitAdvance,
+  onSubmitFinal,
+}: Props) {
   const [advanceRef, setAdvanceRef] = useState("");
   const [finalRef, setFinalRef] = useState("");
   const [advanceFile, setAdvanceFile] = useState<string | null>(null);
@@ -154,7 +169,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
 
   if (!order) return null;
 
-  const status = order.status.toLowerCase();
+  const status = order.status;
   const statusIdx = STATUS_ORDER.indexOf(status);
   const acceptedIdx = STATUS_ORDER.indexOf("accepted");
   const advanceVerifiedIdx = STATUS_ORDER.indexOf("advanceVerified");
@@ -168,17 +183,15 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
     statusIdx < finalPaymentIdx &&
     statusIdx < deliveredIdx;
   const isFinalStage =
-    status === "finalpaymentpending" ||
     status === "finalPaymentPending" ||
     status === "delivered" ||
     status === "completed";
-  const isInTransit =
-    status === "intransit" || status === "inTransit" || status === "shipped";
+  const isInTransit = status === "inTransit" || status === "shipped";
   const showDocs = statusIdx >= acceptedIdx;
   const showInvoice = isFinalStage;
 
-  const reqId = `#CGV-00${order.id.toString()}`;
-  const totalAmount = order.amount || 0;
+  const reqId = `#${order.id.toString()}`;
+  const totalAmount = order.amount || order.quoteBreakdown?.totalAmount || 0;
   const advance = Math.round(totalAmount / 2);
   const remaining = totalAmount - advance;
 
@@ -199,6 +212,35 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
       ),
     },
   ];
+
+  const handleAccept = () => {
+    onAcceptQuote?.(order.id.toString());
+    toast.success("Quote accepted! Please complete the advance payment below.");
+  };
+
+  const handleAdvanceSubmit = () => {
+    if (!advanceRef.trim()) {
+      toast.error("Please enter your UTR / reference number.");
+      return;
+    }
+    onSubmitAdvance?.(
+      order.id.toString(),
+      advanceRef,
+      advanceFile ?? "(no file)",
+    );
+    setAdvanceRef("");
+    setAdvanceFile(null);
+  };
+
+  const handleFinalSubmit = () => {
+    if (!finalRef.trim()) {
+      toast.error("Please enter your UTR / reference number.");
+      return;
+    }
+    onSubmitFinal?.(order.id.toString(), finalRef, finalFile ?? "(no file)");
+    setFinalRef("");
+    setFinalFile(null);
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -250,6 +292,67 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
               </div>
             </section>
 
+            {/* Order Progress Timeline */}
+            <section>
+              <h3 className="section-title mb-4">Order Progress</h3>
+              <div className="space-y-0">
+                {TIMELINE_STEPS.map((step, idx) => {
+                  const state = getStepState(step.key, status);
+                  const isLast = idx === TIMELINE_STEPS.length - 1;
+                  return (
+                    <div key={step.key} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`relative w-7 h-7 rounded-full flex items-center justify-center z-10 flex-shrink-0 ${
+                            state === "completed"
+                              ? "bg-primary"
+                              : state === "current"
+                                ? "bg-orange-500"
+                                : "bg-white border-2 border-muted"
+                          }`}
+                        >
+                          {state === "current" && (
+                            <span className="absolute inset-0 rounded-full bg-orange-400 opacity-40 animate-ping" />
+                          )}
+                          {state === "completed" && (
+                            <Check size={13} className="text-white" />
+                          )}
+                          {state === "current" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-white" />
+                          )}
+                        </div>
+                        {!isLast && (
+                          <div
+                            className={`w-0.5 flex-1 min-h-6 ${
+                              state === "completed" ? "bg-primary" : "bg-border"
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <div className="pb-5 pt-1">
+                        <p
+                          className={`text-sm font-medium ${
+                            state === "completed"
+                              ? "text-primary"
+                              : state === "current"
+                                ? "text-orange-600"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {step.label}
+                        </p>
+                        {state === "current" && (
+                          <p className="text-xs text-orange-500 mt-0.5">
+                            Current status
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
             {/* Documents Section */}
             {showDocs && (
               <motion.section
@@ -258,7 +361,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
               >
                 <h3 className="section-title mb-3">Documents</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Quotation PDF */}
                   <div className="bg-white border border-border rounded-xl p-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -283,7 +385,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                     </button>
                   </div>
 
-                  {/* Invoice PDF */}
                   {showInvoice && (
                     <div className="bg-white border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -312,7 +413,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
               </motion.section>
             )}
 
-            {/* Quote Section — shows breakdown when quotation is sent */}
+            {/* Quote Section */}
             {isQuoted && (
               <motion.section
                 initial={{ opacity: 0, y: 8 }}
@@ -320,7 +421,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
               >
                 <h3 className="section-title mb-3">Quotation</h3>
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-4">
-                  {/* Breakdown table */}
                   {order.quoteBreakdown ? (
                     <>
                       <div className="bg-white border border-orange-100 rounded-xl overflow-hidden">
@@ -385,6 +485,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                     <button
                       type="button"
                       className="btn-primary flex-1 py-2 text-sm"
+                      onClick={handleAccept}
                       data-ocid="customer_order_detail.confirm_button"
                     >
                       Accept Quote
@@ -415,7 +516,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   </span>
                 </div>
 
-                {/* Amount cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-muted/40 border border-border rounded-xl p-4">
                     <p className="text-xs text-muted-foreground mb-1">
@@ -435,7 +535,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Bank details */}
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
                   <p className="text-xs font-semibold text-blue-900 uppercase tracking-wider mb-3">
                     Bank Details
@@ -475,6 +574,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   onFileChange={setAdvanceFile}
                   submitLabel="Submit Advance Payment"
                   submitOcid="customer_order_detail.submit_advance.button"
+                  onSubmit={handleAdvanceSubmit}
                 />
               </motion.section>
             )}
@@ -517,7 +617,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   </span>
                 </div>
 
-                {/* Invoice download card */}
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -541,7 +640,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   </button>
                 </div>
 
-                {/* Remaining balance */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-muted/40 border border-border rounded-xl p-4">
                     <p className="text-xs text-muted-foreground mb-1">
@@ -561,7 +659,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Divider */}
                 <div className="flex items-center gap-3 my-4">
                   <div className="flex-1 h-px bg-border" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -570,7 +667,6 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   <div className="flex-1 h-px bg-border" />
                 </div>
 
-                {/* Bank details */}
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
                   <p className="text-xs font-semibold text-blue-900 uppercase tracking-wider mb-3">
                     Bank Details
@@ -610,70 +706,10 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   onFileChange={setFinalFile}
                   submitLabel="Submit Final Payment"
                   submitOcid="customer_order_detail.submit_final.button"
+                  onSubmit={handleFinalSubmit}
                 />
               </motion.section>
             )}
-
-            {/* Status Timeline */}
-            <section>
-              <h3 className="section-title mb-4">Order Progress</h3>
-              <div className="space-y-0">
-                {TIMELINE_STEPS.map((step, idx) => {
-                  const state = getStepState(step.key, order.status);
-                  const isLast = idx === TIMELINE_STEPS.length - 1;
-                  return (
-                    <div key={step.key} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`relative w-7 h-7 rounded-full flex items-center justify-center z-10 flex-shrink-0 ${
-                            state === "completed"
-                              ? "bg-primary"
-                              : state === "current"
-                                ? "bg-orange-500"
-                                : "bg-white border-2 border-muted"
-                          }`}
-                        >
-                          {state === "current" && (
-                            <span className="absolute inset-0 rounded-full bg-orange-400 opacity-40 animate-ping" />
-                          )}
-                          {state === "completed" && (
-                            <Check size={13} className="text-white" />
-                          )}
-                          {state === "current" && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-white" />
-                          )}
-                        </div>
-                        {!isLast && (
-                          <div
-                            className={`w-0.5 flex-1 min-h-6 ${
-                              state === "completed" ? "bg-primary" : "bg-border"
-                            }`}
-                          />
-                        )}
-                      </div>
-                      <div className="pb-5 pt-1">
-                        <p
-                          className={`text-sm font-medium ${
-                            state === "completed"
-                              ? "text-primary"
-                              : state === "current"
-                                ? "text-orange-600"
-                                : "text-muted-foreground"
-                          }`}
-                        >
-                          {step.label}
-                        </p>
-                        {state === "current" && (
-                          <p className="text-xs text-orange-500 mt-0.5">
-                            Current status
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
 
             {/* Tracking */}
             {isInTransit && (

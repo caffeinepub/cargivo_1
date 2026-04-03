@@ -48,6 +48,7 @@ export function AdminDashboard() {
   );
 
   // Read all quote requests from shared localStorage store
+  // refreshKey is used to force re-evaluation of getQuoteRequests()
   const adminOrders: SampleOrder[] = getQuoteRequests().map((q) => ({
     id: q.id,
     status: q.status,
@@ -59,7 +60,9 @@ export function AdminDashboard() {
     state: q.deliveryState,
     customerCompany: q.customerCompany,
     assignedTo: q.assignedTo,
-    paymentSubmitted: false,
+    paymentSubmitted:
+      q.status === "advancePending" || q.status === "finalPaymentPending",
+    paymentInfo: q.paymentInfo,
     quoteBreakdown: q.quoteBreakdown,
     quoteSentAt: q.quoteSentAt,
   }));
@@ -120,9 +123,7 @@ export function AdminDashboard() {
     },
     {
       label: "Advance Payment Verification",
-      count: adminOrders.filter(
-        (o) => o.status === "accepted" && o.paymentSubmitted,
-      ).length,
+      count: countOrders(["advancePending", "advancepending"]),
       border: "border-l-blue-500",
       icon: <CreditCard size={20} className="text-blue-500" />,
       bg: "bg-blue-50",
@@ -455,6 +456,7 @@ export function AdminDashboard() {
                         <button
                           type="button"
                           className="btn-ghost text-xs px-2.5 py-1.5"
+                          onClick={() => setSelectedOrder(order)}
                           data-ocid={`admin_dashboard.check_payment.button.${i + 1}`}
                         >
                           Check Payment
@@ -476,6 +478,7 @@ export function AdminDashboard() {
         teamMembers={teamMembers}
         onAssign={handleAssign}
         onQuoteSent={handleQuoteSent}
+        onPaymentVerified={() => setRefreshKey((k) => k + 1)}
       />
     </div>
   );

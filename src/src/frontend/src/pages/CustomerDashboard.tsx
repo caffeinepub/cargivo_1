@@ -18,7 +18,13 @@ import { toast } from "sonner";
 import { CustomerOrderDetailModal } from "../components/CustomerOrderDetailModal";
 import { StatusBadge } from "../components/ds/StatusBadge";
 import { useLocalAuth } from "../hooks/useLocalAuth";
-import { addQuoteRequest, getQuoteRequests } from "../utils/quoteStore";
+import {
+  acceptQuote,
+  addQuoteRequest,
+  getQuoteRequests,
+  submitAdvancePayment,
+  submitFinalPayment,
+} from "../utils/quoteStore";
 import type { SampleOrder } from "./sampleData";
 
 function StatCard({
@@ -69,6 +75,27 @@ const INDIAN_STATES = [
   "West Bengal",
 ];
 
+function quoteRequestsToOrders(email: string): SampleOrder[] {
+  return getQuoteRequests()
+    .filter((q) => q.customerId === email)
+    .map((q) => ({
+      id: q.id,
+      status: q.status,
+      boxType: q.boxType,
+      qty: q.quantity,
+      amount: q.quoteBreakdown?.totalAmount ?? 0,
+      date: q.submittedAt.split("T")[0],
+      customer: q.customerName,
+      customerCompany: q.customerCompany,
+      state: q.deliveryState,
+      location: `${q.deliveryCity}, ${q.deliveryState}`,
+      dimensions: `${q.length} × ${q.width} × ${q.height} cm`,
+      assignedTo: q.assignedTo,
+      quoteBreakdown: q.quoteBreakdown,
+      quoteSentAt: q.quoteSentAt,
+    }));
+}
+
 export function CustomerDashboard() {
   const { currentUser } = useLocalAuth();
   const [selectedOrder, setSelectedOrder] = useState<SampleOrder | null>(null);
@@ -85,22 +112,11 @@ export function CustomerDashboard() {
   const [deliveryCity, setDeliveryCity] = useState("");
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
 
-  const orders: SampleOrder[] = getQuoteRequests()
-    .filter((q) => q.customerId === (currentUser?.email ?? ""))
-    .map((q) => ({
-      id: q.id,
-      status: q.status,
-      boxType: q.boxType,
-      qty: q.quantity,
-      amount: 0,
-      date: q.submittedAt.split("T")[0],
-      customer: q.customerName,
-      state: q.deliveryState,
-      customerCompany: q.customerCompany,
-    }));
+  const email = currentUser?.email ?? "";
+  const orders = quoteRequestsToOrders(email);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _refresh = refreshKey; // consumed to trigger re-render
+  // consumed to trigger re-render
+  const _refresh = refreshKey;
 
   const stats = {
     total: orders.length,
@@ -108,10 +124,17 @@ export function CustomerDashboard() {
       ["pending", "inReview", "quoted"].includes(o.status),
     ).length,
     transit: orders.filter((o) =>
-      ["accepted", "inProduction", "shipped", "inTransit"].includes(o.status),
+      [
+        "accepted",
+        "advanceVerified",
+        "preparing",
+        "inProduction",
+        "inTransit",
+        "shipped",
+      ].includes(o.status),
     ).length,
     delivered: orders.filter((o) =>
-      ["delivered", "completed"].includes(o.status),
+      ["delivered", "finalPaymentPending", "completed"].includes(o.status),
     ).length,
   };
 
@@ -120,7 +143,7 @@ export function CustomerDashboard() {
     setIsSubmittingQuote(true);
     await new Promise((r) => setTimeout(r, 800));
     addQuoteRequest({
-      customerId: currentUser?.email ?? "unknown",
+      customerId: email,
       customerName: currentUser?.name ?? "Customer",
       customerCompany: currentUser?.company ?? "",
       boxType,
@@ -144,6 +167,27 @@ export function CustomerDashboard() {
     setDeliveryCity("");
     setFileName(null);
     setIsSubmittingQuote(false);
+    setRefreshKey((k) => k + 1);
+  };
+
+  const handleAcceptQuote = (orderId: string) => {
+    acceptQuote(orderId);
+    const updated = quoteRequestsToOrders(email).find(
+      (o) => o.id.toString() === orderId,
+    );
+    if (updated) setSelectedOrder(updated);
+    setRefreshKey((k) => k + 1);
+  };
+
+  const handleAdvancePayment = (orderId: string, ref: string, file: string) => {
+    submitAdvancePayment(orderId, ref, file);
+    toast.success("Advance payment submitted! We'll verify within 2 hours.");
+    setRefreshKey((k) => k + 1);
+  };
+
+  const handleFinalPayment = (orderId: string, ref: string, file: string) => {
+    submitFinalPayment(orderId, ref, file);
+    toast.success("Final payment submitted! We'll verify shortly.");
     setRefreshKey((k) => k + 1);
   };
 
@@ -481,6 +525,9 @@ export function CustomerDashboard() {
         order={selectedOrder}
         open={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onAcceptQuote={handleAcceptQuote}
+        onSubmitAdvance={handleAdvancePayment}
+        onSubmitFinal={handleFinalPayment}
       />
     </div>
   );

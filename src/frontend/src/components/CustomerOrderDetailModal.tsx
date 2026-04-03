@@ -15,12 +15,15 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { SampleOrder } from "../pages/sampleData";
+import { submitPayment } from "../utils/quoteStore";
 import { StatusBadge } from "./StatusBadge";
 
 interface Props {
   order: SampleOrder | null;
   open: boolean;
   onClose: () => void;
+  onAccept?: () => void;
+  onReject?: () => void;
 }
 
 const TIMELINE_STEPS = [
@@ -28,6 +31,7 @@ const TIMELINE_STEPS = [
   { key: "assigned", label: "Assigned" },
   { key: "quoted", label: "Quotation Sent" },
   { key: "accepted", label: "Quote Accepted" },
+  { key: "advancePending", label: "Advance Payment Submitted" },
   { key: "advanceVerified", label: "Advance Payment Verified" },
   { key: "preparing", label: "Preparing" },
   { key: "inTransit", label: "In Transit" },
@@ -41,8 +45,10 @@ const STATUS_ORDER = [
   "assigned",
   "quoted",
   "accepted",
+  "advancePending",
   "advanceVerified",
   "preparing",
+  "orderPrepared",
   "inTransit",
   "delivered",
   "finalPaymentPending",
@@ -75,6 +81,7 @@ function PaymentForm({
   onFileChange,
   submitLabel,
   submitOcid,
+  onSubmit,
 }: {
   refValue: string;
   onRefChange: (v: string) => void;
@@ -82,6 +89,7 @@ function PaymentForm({
   onFileChange: (name: string | null) => void;
   submitLabel: string;
   submitOcid: string;
+  onSubmit?: () => void;
 }) {
   return (
     <div className="space-y-3">
@@ -135,6 +143,7 @@ function PaymentForm({
         type="button"
         className="btn-primary w-full py-3 text-sm font-semibold"
         data-ocid={submitOcid}
+        onClick={onSubmit}
       >
         {submitLabel}
       </button>
@@ -146,7 +155,13 @@ function PaymentForm({
   );
 }
 
-export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
+export function CustomerOrderDetailModal({
+  order,
+  open,
+  onClose,
+  onAccept,
+  onReject,
+}: Props) {
   const [advanceRef, setAdvanceRef] = useState("");
   const [finalRef, setFinalRef] = useState("");
   const [advanceFile, setAdvanceFile] = useState<string | null>(null);
@@ -158,24 +173,26 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
   const statusIdx = STATUS_ORDER.indexOf(status);
   const acceptedIdx = STATUS_ORDER.indexOf("accepted");
   const advanceVerifiedIdx = STATUS_ORDER.indexOf("advanceVerified");
-  const finalPaymentIdx = STATUS_ORDER.indexOf("finalPaymentPending");
   const deliveredIdx = STATUS_ORDER.indexOf("delivered");
 
   const isQuoted = status === "quoted";
+  // Bank details for advance payment: only when quote is accepted (before paying advance)
   const isAdvanceStage = status === "accepted";
+  const isAdvancePending =
+    status === "advancepending" || status === "advancePending";
+  // Show "advance verified" confirmation only between advanceVerified and delivered (exclusive)
   const isAdvanceVerified =
     statusIdx >= advanceVerifiedIdx &&
-    statusIdx < finalPaymentIdx &&
-    statusIdx < deliveredIdx;
-  const isFinalStage =
-    status === "finalpaymentpending" ||
-    status === "finalPaymentPending" ||
-    status === "delivered" ||
-    status === "completed";
+    statusIdx < deliveredIdx &&
+    status !== "finalpaymentpending" &&
+    status !== "finalPaymentPending";
+  // Final payment section (with bank details) only shows AFTER delivery is confirmed
+  const isFinalStage = statusIdx >= deliveredIdx;
   const isInTransit =
     status === "intransit" || status === "inTransit" || status === "shipped";
   const showDocs = statusIdx >= acceptedIdx;
-  const showInvoice = isFinalStage;
+  // Invoice PDF in Documents section only after delivery
+  const showInvoice = statusIdx >= deliveredIdx;
 
   const reqId = `#CGV-00${order.id.toString()}`;
   const totalAmount = order.amount || 0;
@@ -199,6 +216,28 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
       ),
     },
   ];
+
+  function handleSubmitAdvancePayment() {
+    if (!advanceRef.trim()) {
+      toast.error("Please enter UTR / Reference number");
+      return;
+    }
+    submitPayment(order!.id.toString(), "advance", advanceRef);
+    toast.success(
+      "Advance payment submitted! Admin will verify within 2 hours.",
+    );
+    onClose();
+  }
+
+  function handleSubmitFinalPayment() {
+    if (!finalRef.trim()) {
+      toast.error("Please enter UTR / Reference number");
+      return;
+    }
+    submitPayment(order!.id.toString(), "final", finalRef);
+    toast.success("Final payment submitted! Admin will verify within 2 hours.");
+    onClose();
+  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -385,6 +424,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                     <button
                       type="button"
                       className="btn-primary flex-1 py-2 text-sm"
+                      onClick={onAccept}
                       data-ocid="customer_order_detail.confirm_button"
                     >
                       Accept Quote
@@ -392,6 +432,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                     <button
                       type="button"
                       className="btn-danger flex-1 py-2 text-sm"
+                      onClick={onReject}
                       data-ocid="customer_order_detail.cancel_button"
                     >
                       Reject
@@ -475,7 +516,32 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   onFileChange={setAdvanceFile}
                   submitLabel="Submit Advance Payment"
                   submitOcid="customer_order_detail.submit_advance.button"
+                  onSubmit={handleSubmitAdvancePayment}
                 />
+              </motion.section>
+            )}
+
+            {/* Advance Payment Submitted — awaiting verification */}
+            {isAdvancePending && (
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+                  <CheckCircle2
+                    size={22}
+                    className="text-blue-600 flex-shrink-0"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800">
+                      Advance Payment Submitted
+                    </p>
+                    <p className="text-xs text-blue-600 mt-0.5">
+                      Awaiting admin verification. You'll be notified once
+                      verified.
+                    </p>
+                  </div>
+                </div>
               </motion.section>
             )}
 
@@ -610,6 +676,7 @@ export function CustomerOrderDetailModal({ order, open, onClose }: Props) {
                   onFileChange={setFinalFile}
                   submitLabel="Submit Final Payment"
                   submitOcid="customer_order_detail.submit_final.button"
+                  onSubmit={handleSubmitFinalPayment}
                 />
               </motion.section>
             )}

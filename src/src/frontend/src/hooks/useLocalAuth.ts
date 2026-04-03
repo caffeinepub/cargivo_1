@@ -27,7 +27,7 @@ const TEST_ACCOUNTS: Array<LocalUser & { password: string }> = [
   {
     email: "team@cargivo.com",
     password: "Team@123",
-    name: "Priya Verma",
+    name: "Lovepreet Singh",
     role: "teamMember",
   },
 ];

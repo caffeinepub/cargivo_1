@@ -18,7 +18,11 @@ import { toast } from "sonner";
 import { CustomerOrderDetailModal } from "../components/CustomerOrderDetailModal";
 import { StatusBadge } from "../components/ds/StatusBadge";
 import { useLocalAuth } from "../hooks/useLocalAuth";
-import { addQuoteRequest, getQuoteRequests } from "../utils/quoteStore";
+import {
+  addQuoteRequest,
+  getQuoteRequests,
+  updateQuoteStatus,
+} from "../utils/quoteStore";
 import type { SampleOrder } from "./sampleData";
 
 function StatCard({
@@ -124,6 +128,22 @@ export function CustomerDashboard() {
     delivered: orders.filter((o) =>
       ["delivered", "completed"].includes(o.status),
     ).length,
+  };
+
+  const handleAcceptQuote = () => {
+    if (!selectedOrder) return;
+    updateQuoteStatus(selectedOrder.id.toString(), "accepted");
+    setSelectedOrder(null);
+    setRefreshKey((k) => k + 1);
+    toast.success("Quote accepted! Please complete the advance payment.");
+  };
+
+  const handleRejectQuote = () => {
+    if (!selectedOrder) return;
+    updateQuoteStatus(selectedOrder.id.toString(), "cancelled");
+    setSelectedOrder(null);
+    setRefreshKey((k) => k + 1);
+    toast.info("Quote rejected.");
   };
 
   const handleQuoteSubmit = async (e: React.FormEvent) => {
@@ -492,6 +512,8 @@ export function CustomerDashboard() {
         order={selectedOrder}
         open={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onAccept={handleAcceptQuote}
+        onReject={handleRejectQuote}
       />
     </div>
   );

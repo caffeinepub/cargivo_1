@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import type { SampleOrder } from "../pages/sampleData";
+import { rejectPayment, verifyPayment } from "../utils/quoteStore";
 import { StatusBadge } from "./StatusBadge";
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
   teamMembers?: string[];
   onAssign?: (orderId: string, memberName: string) => void;
   onQuoteSent?: (orderId: string) => void;
+  onPaymentVerified?: () => void;
 }
 
 const TIMELINE_STEPS = [
@@ -26,11 +28,13 @@ const TIMELINE_STEPS = [
   { key: "assigned", label: "Assigned" },
   { key: "quoted", label: "Quotation Sent" },
   { key: "accepted", label: "Quote Accepted" },
+  { key: "advancePending", label: "Advance Payment Submitted" },
   { key: "advanceVerified", label: "Advance Payment Verified" },
   { key: "preparing", label: "Preparing" },
   { key: "orderPrepared", label: "Order Prepared" },
   { key: "inTransit", label: "In Transit" },
   { key: "delivered", label: "Delivered" },
+  { key: "finalPaymentPending", label: "Final Payment Pending" },
   { key: "finalPaymentVerified", label: "Final Payment Verified" },
   { key: "completed", label: "Completed" },
 ];
@@ -40,13 +44,14 @@ const STATUS_ORDER = [
   "assigned",
   "quoted",
   "accepted",
+  "advancePending",
   "advanceVerified",
   "preparing",
   "orderPrepared",
   "inTransit",
   "delivered",
-  "finalPaymentVerified",
   "finalPaymentPending",
+  "finalPaymentVerified",
   "completed",
 ];
 
@@ -82,6 +87,7 @@ export function AdminOrderDetailModal({
   onClose,
   teamMembers = [],
   onAssign,
+  onPaymentVerified,
 }: Props) {
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -89,6 +95,16 @@ export function AdminOrderDetailModal({
   const assignRef = useRef<HTMLDivElement>(null);
 
   if (!order) return null;
+
+  // Payment verification logic based on status
+  const isAdvancePaymentPending =
+    order.status === "advancePending" ||
+    order.status.toLowerCase() === "advancepending";
+  const isFinalPaymentPending =
+    order.status === "finalPaymentPending" ||
+    order.status.toLowerCase() === "finalpaymentpending";
+  const showPaymentVerification =
+    isAdvancePaymentPending || isFinalPaymentPending;
 
   // Determine if quote has already been sent (status is quoted or beyond)
   const isQuoteAlreadySent =
@@ -118,6 +134,22 @@ export function AdminOrderDetailModal({
       onAssign(order!.id.toString(), name);
     }
     setShowAssignDropdown(false);
+  }
+
+  function handleApprovePayment() {
+    verifyPayment(
+      order!.id.toString(),
+      order!.paymentInfo?.type ??
+        (isAdvancePaymentPending ? "advance" : "final"),
+    );
+    onPaymentVerified?.();
+    onClose();
+  }
+
+  function handleRejectPayment() {
+    rejectPayment(order!.id.toString());
+    onPaymentVerified?.();
+    onClose();
   }
 
   return (
@@ -409,28 +441,34 @@ export function AdminOrderDetailModal({
             </section>
 
             {/* Section 5: Payment Verification */}
-            {order.paymentSubmitted && (
+            {showPaymentVerification && (
               <section>
                 <div className="border-l-4 border-yellow-400 pl-3 mb-3">
                   <h3 className="text-sm font-semibold text-foreground">
-                    Payment Verification
+                    {isAdvancePaymentPending ? "Advance" : "Final"} Payment
+                    Verification
                   </h3>
                 </div>
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
-                  <div>
-                    <p className="text-xs text-amber-700 font-medium mb-1">
-                      Reference Code
-                    </p>
-                    <p className="font-mono text-base font-bold text-amber-900">
-                      {order.paymentRef ?? "—"}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-amber-700 font-medium mb-1">
+                        UTR / Reference Number
+                      </p>
+                      <p className="font-mono text-base font-bold text-amber-900">
+                        {order.paymentInfo?.ref ?? "—"}
+                      </p>
+                    </div>
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                      Pending Verification
+                    </span>
                   </div>
 
                   {/* Screenshot placeholder */}
-                  <div className="bg-white border-2 border-dashed border-amber-200 rounded-xl h-32 flex flex-col items-center justify-center gap-2">
-                    <ImageIcon size={28} className="text-amber-300" />
+                  <div className="bg-white border-2 border-dashed border-amber-200 rounded-xl h-24 flex flex-col items-center justify-center gap-2">
+                    <ImageIcon size={24} className="text-amber-300" />
                     <p className="text-xs text-muted-foreground">
-                      Payment screenshot
+                      Payment screenshot (submitted by customer)
                     </p>
                   </div>
 
@@ -438,6 +476,7 @@ export function AdminOrderDetailModal({
                     <button
                       type="button"
                       className="flex-1 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors"
+                      onClick={handleApprovePayment}
                       data-ocid="admin_order_detail.approve.primary_button"
                     >
                       Approve Payment
@@ -471,6 +510,7 @@ export function AdminOrderDetailModal({
                       <button
                         type="button"
                         className="btn-danger w-full py-2 text-sm"
+                        onClick={handleRejectPayment}
                         data-ocid="admin_order_detail.reject_confirm.delete_button"
                       >
                         Confirm Rejection

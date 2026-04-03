@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "../components/ds/StatusBadge";
 import type { QuoteBreakdown } from "../utils/quoteStore";
-import { sendQuotation } from "../utils/quoteStore";
+import { sendQuotation, updateOrderStatus } from "../utils/quoteStore";
 import type { SampleOrder } from "./sampleData";
 
 interface Props {
@@ -27,10 +27,6 @@ export function TeamOrderDetail({ order, onBack }: Props) {
   const totalAmount = basePriceNum + gstAmt + deliveryNum;
 
   const isQuoteAlreadySent = quoteSent || !!order.quoteBreakdown;
-
-  const handleStatusUpdate = (label: string) => {
-    toast.success(`Status updated to ${label}`);
-  };
 
   function handleSendQuotation() {
     if (!basePriceNum || basePriceNum <= 0) return;
@@ -381,7 +377,11 @@ export function TeamOrderDetail({ order, onBack }: Props) {
           <button
             type="button"
             className="btn-secondary"
-            onClick={() => handleStatusUpdate("Preparing Order")}
+            onClick={() => {
+              updateOrderStatus(order.id.toString(), "preparing");
+              toast.success("Status updated to Preparing Order");
+              onBack();
+            }}
             data-ocid="team_order_detail.secondary_button"
           >
             Preparing Order
@@ -389,20 +389,32 @@ export function TeamOrderDetail({ order, onBack }: Props) {
           <button
             type="button"
             className="btn-secondary"
-            onClick={() => handleStatusUpdate("Order Prepared")}
+            onClick={() => {
+              updateOrderStatus(order.id.toString(), "orderPrepared");
+              toast.success("Status updated to Order Prepared");
+              onBack();
+            }}
           >
             Order Prepared
           </button>
           <button
             type="button"
             className="btn-secondary"
-            onClick={() => handleStatusUpdate("In Transit")}
+            onClick={() => {
+              updateOrderStatus(order.id.toString(), "inTransit");
+              toast.success("Status updated to In Transit");
+              onBack();
+            }}
           >
             In Transit
           </button>
           <button
             type="button"
-            onClick={() => handleStatusUpdate("Delivered")}
+            onClick={() => {
+              updateOrderStatus(order.id.toString(), "delivered");
+              toast.success("Status updated to Delivered");
+              onBack();
+            }}
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
           >
             Delivered
