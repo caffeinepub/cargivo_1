@@ -6,7 +6,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle2, ClipboardList, PackageCheck, Truck } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  PackageCheck,
+  RefreshCcw,
+  Truck,
+} from "lucide-react";
 import { useState } from "react";
 import { StatusBadge } from "../components/ds/StatusBadge";
 import { getQuoteRequests } from "../utils/quoteStore";
@@ -45,6 +51,8 @@ interface Props {
 
 export function TeamDashboard({ currentUserName }: Props) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const _refresh = refreshKey; // consumed to trigger re-render
 
   // Read assigned orders for this team member from shared store
   const rawOrders = getQuoteRequests().filter(
@@ -91,7 +99,21 @@ export function TeamDashboard({ currentUserName }: Props) {
 
   return (
     <div className="space-y-6" data-ocid="team_dashboard.panel">
-      <h2 className="text-xl font-bold text-foreground">My Assigned Orders</h2>
+      {/* Page Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <h1 className="text-xl font-bold text-foreground">
+          My Assigned Orders
+        </h1>
+        <button
+          type="button"
+          title="Refresh"
+          onClick={() => setRefreshKey((k) => k + 1)}
+          className="btn-ghost w-9 h-9 flex items-center justify-center rounded-xl"
+          data-ocid="team_dashboard.secondary_button"
+        >
+          <RefreshCcw size={16} className="text-muted-foreground" />
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

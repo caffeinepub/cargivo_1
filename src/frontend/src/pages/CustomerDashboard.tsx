@@ -10,6 +10,7 @@ import {
   Package,
   PackageCheck,
   PackageSearch,
+  RefreshCcw,
   Truck,
   UploadCloud,
 } from "lucide-react";
@@ -180,6 +181,20 @@ export function CustomerDashboard() {
 
   return (
     <div className="space-y-6" data-ocid="customer_dashboard.panel">
+      {/* Page Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <h1 className="text-xl font-bold text-foreground">My Dashboard</h1>
+        <button
+          type="button"
+          title="Refresh"
+          onClick={() => setRefreshKey((k) => k + 1)}
+          className="btn-ghost w-9 h-9 flex items-center justify-center rounded-xl"
+          data-ocid="customer_dashboard.secondary_button"
+        >
+          <RefreshCcw size={16} className="text-muted-foreground" />
+        </button>
+      </div>
+
       {/* Row 1: Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
