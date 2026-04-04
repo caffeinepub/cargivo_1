@@ -44,7 +44,6 @@ const ORDER_STEPS: OrderStep[] = [
   { key: "completed", label: "Completed" },
 ];
 
-// Map quoteStore statuses to the step key timeline
 function normalizeStatus(status: string): string {
   const map: Record<string, string> = {
     pending: "new",
@@ -188,31 +187,87 @@ function ConnectorLine({ state }: { state: "completed" | "pending" }) {
   );
 }
 
+// ─── Breakdown Display ───────────────────────────────────────────────────────
+
+function BreakdownCard({ bd }: { bd: QuoteBreakdown }) {
+  return (
+    <div className="bg-white border border-border rounded-xl overflow-hidden">
+      <div className="grid grid-cols-2 divide-x divide-border">
+        <div className="p-3 border-b border-border">
+          <p className="text-xs text-muted-foreground mb-0.5">Price per Unit</p>
+          <p className="text-sm font-bold text-foreground">
+            ₹{bd.pricePerUnit.toLocaleString()}
+          </p>
+        </div>
+        <div className="p-3 border-b border-border">
+          <p className="text-xs text-muted-foreground mb-0.5">Quantity</p>
+          <p className="text-sm font-bold text-foreground">
+            {bd.quantity.toLocaleString()} units
+          </p>
+        </div>
+        <div className="p-3 border-b border-border">
+          <p className="text-xs text-muted-foreground mb-0.5">Base Price</p>
+          <p className="text-sm font-bold text-foreground">
+            ₹{bd.basePrice.toLocaleString()}
+          </p>
+        </div>
+        <div className="p-3 border-b border-border">
+          <p className="text-xs text-muted-foreground mb-0.5">
+            GST ({bd.gstPercent}%)
+          </p>
+          <p className="text-sm font-bold text-foreground">
+            ₹{bd.gstAmount.toLocaleString()}
+          </p>
+        </div>
+        <div className="p-3">
+          <p className="text-xs text-muted-foreground mb-0.5">
+            Delivery Charges
+          </p>
+          <p className="text-sm font-bold text-foreground">
+            ₹{bd.deliveryCharges.toLocaleString()}
+          </p>
+        </div>
+        <div className="p-3 bg-orange-50">
+          <p className="text-xs text-orange-600 mb-0.5">Total Amount</p>
+          <p className="text-base font-extrabold text-orange-600">
+            ₹{bd.totalAmount.toLocaleString()}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function TeamOrderDetail({ order, onBack }: Props) {
-  const [basePrice, setBasePrice] = useState("");
+  const [pricePerUnit, setPricePerUnit] = useState("");
   const [gstPercent, setGstPercent] = useState(18);
   const [deliveryCharges, setDeliveryCharges] = useState("");
   const [quoteSent, setQuoteSent] = useState(false);
   const [transportPartner, setTransportPartner] = useState("");
   const [trackingLink, setTrackingLink] = useState("");
 
-  const basePriceNum = Number.parseFloat(basePrice) || 0;
-  const gstAmt = Math.round((basePriceNum * gstPercent) / 100);
+  const orderQty = order.qty || 1;
+  const pricePerUnitNum = Number.parseFloat(pricePerUnit) || 0;
+  const basePrice = pricePerUnitNum * orderQty;
+  const gstAmt = Math.round((basePrice * gstPercent) / 100);
   const deliveryNum = Number.parseFloat(deliveryCharges) || 0;
-  const totalAmount = basePriceNum + gstAmt + deliveryNum;
+  const totalAmount = basePrice + gstAmt + deliveryNum;
 
   const isQuoteAlreadySent = quoteSent || !!order.quoteBreakdown;
 
-  // Normalize current status to step key
   const currentStepKey = normalizeStatus(order.status);
+  const acceptedStepIdx = ORDER_STEPS.findIndex((s) => s.key === "accepted");
+  const isPostAccepted = getStepIndex(currentStepKey) >= acceptedStepIdx;
   const actionConfig = getActionConfig(currentStepKey);
 
   function handleSendQuotation() {
-    if (!basePriceNum || basePriceNum <= 0) return;
+    if (!pricePerUnitNum || pricePerUnitNum <= 0) return;
     const breakdown: QuoteBreakdown = {
-      basePrice: basePriceNum,
+      pricePerUnit: pricePerUnitNum,
+      quantity: orderQty,
+      basePrice,
       gstPercent,
       gstAmount: gstAmt,
       deliveryCharges: deliveryNum,
@@ -328,235 +383,197 @@ export function TeamOrderDetail({ order, onBack }: Props) {
         </div>
       </div>
 
-      {/* Section 2: Send Quotation */}
+      {/* Section 2: Quotation */}
       <div
         id="quotation-section"
         className="bg-white border border-border rounded-xl shadow-card p-6"
       >
-        <div className="border-l-4 border-orange-500 pl-3 mb-5">
-          <h2 className="text-base font-semibold text-foreground">
-            Send Quotation
-          </h2>
-        </div>
-
-        {isQuoteAlreadySent ? (
-          /* Quotation already sent — show completion state */
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 size={20} className="text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-emerald-800">
-                  Quotation Sent
-                </p>
-                <p className="text-xs text-emerald-600">
-                  Customer can now view and accept the quote
-                </p>
-              </div>
-            </div>
-            {displayBreakdown ? (
-              <div className="bg-white border border-emerald-100 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-2 divide-x divide-border">
-                  <div className="p-3 border-b border-border">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      Base Price
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{displayBreakdown.basePrice.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3 border-b border-border">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      GST ({displayBreakdown.gstPercent}%)
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{displayBreakdown.gstAmount.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      Delivery Charges
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{displayBreakdown.deliveryCharges.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-orange-50">
-                    <p className="text-xs text-orange-600 mb-0.5">
-                      Total Amount
-                    </p>
-                    <p className="text-base font-extrabold text-orange-600">
-                      ₹{displayBreakdown.totalAmount.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : quoteSent && totalAmount > 0 ? (
-              <div className="bg-white border border-emerald-100 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-2 divide-x divide-border">
-                  <div className="p-3 border-b border-border">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      Base Price
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{basePriceNum.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3 border-b border-border">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      GST ({gstPercent}%)
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{gstAmt.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      Delivery Charges
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{deliveryNum.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-orange-50">
-                    <p className="text-xs text-orange-600 mb-0.5">
-                      Total Amount
-                    </p>
-                    <p className="text-base font-extrabold text-orange-600">
-                      ₹{totalAmount.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
+        {isPostAccepted ? (
+          /* Post-acceptance: locked read-only summary */
+          displayBreakdown ? (
+            <>
+              <h2 className="text-base font-semibold text-foreground mb-4">
+                Quotation Summary
+              </h2>
+              <BreakdownCard bd={displayBreakdown} />
+            </>
+          ) : null
         ) : (
-          /* Full quotation form */
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Base Price */}
-              <div>
-                <label
-                  htmlFor="team-base-price"
-                  className="block text-xs font-medium text-foreground mb-1.5"
-                >
-                  Base Price (₹)
-                </label>
-                <input
-                  id="team-base-price"
-                  type="number"
-                  min="0"
-                  className="form-input w-full"
-                  placeholder="e.g. 50000"
-                  value={basePrice}
-                  onChange={(e) => setBasePrice(e.target.value)}
-                  data-ocid="team_order_detail.input"
-                />
-              </div>
-
-              {/* GST */}
-              <div>
-                <label
-                  htmlFor="team-gst-select"
-                  className="block text-xs font-medium text-foreground mb-1.5"
-                >
-                  GST Rate
-                </label>
-                <select
-                  id="team-gst-select"
-                  className="form-input w-full"
-                  value={gstPercent}
-                  onChange={(e) => setGstPercent(Number(e.target.value))}
-                  data-ocid="team_order_detail.select"
-                >
-                  {GST_OPTIONS.map((g) => (
-                    <option key={g} value={g}>
-                      {g}%
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Delivery Charges */}
-              <div>
-                <label
-                  htmlFor="team-delivery"
-                  className="block text-xs font-medium text-foreground mb-1.5"
-                >
-                  Delivery Charges (₹)
-                </label>
-                <input
-                  id="team-delivery"
-                  type="number"
-                  min="0"
-                  className="form-input w-full"
-                  placeholder="e.g. 2000"
-                  value={deliveryCharges}
-                  onChange={(e) => setDeliveryCharges(e.target.value)}
-                />
-              </div>
+          /* Pre-acceptance: full send-quotation section */
+          <>
+            <div className="border-l-4 border-orange-500 pl-3 mb-5">
+              <h2 className="text-base font-semibold text-foreground">
+                Send Quotation
+              </h2>
             </div>
 
-            {/* Live Breakdown Preview */}
-            {basePriceNum > 0 && (
-              <div className="bg-muted/30 border border-border rounded-xl overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-border bg-muted/40">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Quotation Breakdown
+            {isQuoteAlreadySent ? (
+              /* Quotation already sent — show completion state */
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 size={20} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-800">
+                      Quotation Sent
+                    </p>
+                    <p className="text-xs text-emerald-600">
+                      Customer can now view and accept the quote
+                    </p>
+                  </div>
+                </div>
+                {displayBreakdown && <BreakdownCard bd={displayBreakdown} />}
+              </div>
+            ) : (
+              /* Full quotation form */
+              <div className="space-y-4">
+                {/* Qty info banner */}
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5">
+                  <Info size={14} className="text-blue-500 flex-shrink-0" />
+                  <p className="text-xs text-blue-700">
+                    Order quantity:{" "}
+                    <span className="font-bold">{orderQty} units</span>. Enter
+                    price per unit — total base price will be calculated
+                    automatically.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
-                  <div className="p-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      Base Price
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{basePriceNum.toLocaleString()}
-                    </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Price per unit */}
+                  <div>
+                    <label
+                      htmlFor="team-price-per-unit"
+                      className="block text-xs font-medium text-foreground mb-1.5"
+                    >
+                      Price per Unit (₹)
+                    </label>
+                    <input
+                      id="team-price-per-unit"
+                      type="number"
+                      min="0"
+                      className="form-input w-full"
+                      placeholder="e.g. 500"
+                      value={pricePerUnit}
+                      onChange={(e) => setPricePerUnit(e.target.value)}
+                      data-ocid="team_order_detail.input"
+                    />
                   </div>
-                  <div className="p-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      GST ({gstPercent}%)
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{gstAmt.toLocaleString()}
-                    </p>
+
+                  {/* GST */}
+                  <div>
+                    <label
+                      htmlFor="team-gst-select"
+                      className="block text-xs font-medium text-foreground mb-1.5"
+                    >
+                      GST Rate
+                    </label>
+                    <select
+                      id="team-gst-select"
+                      className="form-input w-full"
+                      value={gstPercent}
+                      onChange={(e) => setGstPercent(Number(e.target.value))}
+                      data-ocid="team_order_detail.select"
+                    >
+                      {GST_OPTIONS.map((g) => (
+                        <option key={g} value={g}>
+                          {g}%
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="p-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      Delivery
-                    </p>
-                    <p className="text-sm font-bold text-foreground">
-                      ₹{deliveryNum.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-orange-50">
-                    <p className="text-xs text-orange-600 mb-0.5">Total</p>
-                    <p className="text-sm font-extrabold text-orange-600">
-                      ₹{totalAmount.toLocaleString()}
-                    </p>
+
+                  {/* Delivery Charges */}
+                  <div>
+                    <label
+                      htmlFor="team-delivery"
+                      className="block text-xs font-medium text-foreground mb-1.5"
+                    >
+                      Delivery Charges (₹)
+                    </label>
+                    <input
+                      id="team-delivery"
+                      type="number"
+                      min="0"
+                      className="form-input w-full"
+                      placeholder="e.g. 2000"
+                      value={deliveryCharges}
+                      onChange={(e) => setDeliveryCharges(e.target.value)}
+                    />
                   </div>
                 </div>
+
+                {/* Live Breakdown Preview */}
+                {pricePerUnitNum > 0 && (
+                  <div className="bg-muted/30 border border-border rounded-xl overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-border bg-muted/40">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Quotation Breakdown Preview
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-border">
+                      <div className="p-3">
+                        <p className="text-xs text-muted-foreground mb-0.5">
+                          Per Unit
+                        </p>
+                        <p className="text-sm font-bold text-foreground">
+                          ₹{pricePerUnitNum.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="p-3">
+                        <p className="text-xs text-muted-foreground mb-0.5">
+                          × {orderQty} units = Base
+                        </p>
+                        <p className="text-sm font-bold text-foreground">
+                          ₹{basePrice.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="p-3 border-l border-border sm:border-l-0 border-t border-border sm:border-t-0">
+                        <p className="text-xs text-muted-foreground mb-0.5">
+                          GST ({gstPercent}%)
+                        </p>
+                        <p className="text-sm font-bold text-foreground">
+                          ₹{gstAmt.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 divide-x divide-border border-t border-border">
+                      <div className="p-3">
+                        <p className="text-xs text-muted-foreground mb-0.5">
+                          Delivery
+                        </p>
+                        <p className="text-sm font-bold text-foreground">
+                          ₹{deliveryNum.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-orange-50">
+                        <p className="text-xs text-orange-600 mb-0.5">Total</p>
+                        <p className="text-base font-extrabold text-orange-600">
+                          ₹{totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className="btn-primary w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={pricePerUnitNum <= 0}
+                  onClick={handleSendQuotation}
+                  data-ocid="team_order_detail.submit_button"
+                >
+                  <SendHorizonal size={15} />
+                  Send Quotation to Customer
+                </button>
+                {pricePerUnitNum <= 0 && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    Enter price per unit to enable sending
+                  </p>
+                )}
               </div>
             )}
-
-            <button
-              type="button"
-              className="btn-primary w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={basePriceNum <= 0}
-              onClick={handleSendQuotation}
-              data-ocid="team_order_detail.submit_button"
-            >
-              <SendHorizonal size={15} />
-              Send Quotation to Customer
-            </button>
-            {basePriceNum <= 0 && (
-              <p className="text-xs text-center text-muted-foreground">
-                Enter base price to enable sending
-              </p>
-            )}
-          </div>
+          </>
         )}
       </div>
 
@@ -581,17 +598,12 @@ export function TeamOrderDetail({ order, onBack }: Props) {
 
               return (
                 <div key={step.key} className="relative flex items-start gap-4">
-                  {/* Vertical connector (not on last item) */}
                   {!isLast && (
                     <ConnectorLine
                       state={state === "completed" ? "completed" : "pending"}
                     />
                   )}
-
-                  {/* Step dot */}
                   <StepDot state={state} />
-
-                  {/* Step content */}
                   <div
                     className={`pb-7 ${isLast ? "pb-0" : ""} flex-1 min-w-0`}
                   >
@@ -737,8 +749,6 @@ export function TeamOrderDetail({ order, onBack }: Props) {
                 <Check size={15} strokeWidth={2.5} />
                 {actionConfig.label}
               </button>
-
-              {/* Completed steps summary */}
               <div className="mt-auto pt-2 border-t border-border">
                 <p className="text-xs text-muted-foreground">
                   <span className="font-semibold text-emerald-600">

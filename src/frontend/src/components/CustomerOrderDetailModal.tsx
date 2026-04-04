@@ -176,28 +176,26 @@ export function CustomerOrderDetailModal({
   const deliveredIdx = STATUS_ORDER.indexOf("delivered");
 
   const isQuoted = status === "quoted";
-  // Bank details for advance payment: only when quote is accepted (before paying advance)
   const isAdvanceStage = status === "accepted";
   const isAdvancePending =
     status === "advancepending" || status === "advancePending";
-  // Show "advance verified" confirmation only between advanceVerified and delivered (exclusive)
   const isAdvanceVerified =
     statusIdx >= advanceVerifiedIdx &&
     statusIdx < deliveredIdx &&
     status !== "finalpaymentpending" &&
     status !== "finalPaymentPending";
-  // Final payment section (with bank details) only shows AFTER delivery is confirmed
   const isFinalStage = statusIdx >= deliveredIdx;
   const isInTransit =
     status === "intransit" || status === "inTransit" || status === "shipped";
   const showDocs = statusIdx >= acceptedIdx;
-  // Invoice PDF in Documents section only after delivery
   const showInvoice = statusIdx >= deliveredIdx;
 
   const reqId = `#CGV-00${order.id.toString()}`;
   const totalAmount = order.amount || 0;
   const advance = Math.round(totalAmount / 2);
   const remaining = totalAmount - advance;
+
+  const bd = order.quoteBreakdown;
 
   const orderDetails = [
     { label: "Box Type", value: order.boxType },
@@ -297,7 +295,6 @@ export function CustomerOrderDetailModal({
               >
                 <h3 className="section-title mb-3">Documents</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Quotation PDF */}
                   <div className="bg-white border border-border rounded-xl p-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -322,7 +319,6 @@ export function CustomerOrderDetailModal({
                     </button>
                   </div>
 
-                  {/* Invoice PDF */}
                   {showInvoice && (
                     <div className="bg-white border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -351,7 +347,7 @@ export function CustomerOrderDetailModal({
               </motion.section>
             )}
 
-            {/* Quote Section — shows breakdown when quotation is sent */}
+            {/* Quote Section */}
             {isQuoted && (
               <motion.section
                 initial={{ opacity: 0, y: 8 }}
@@ -359,25 +355,46 @@ export function CustomerOrderDetailModal({
               >
                 <h3 className="section-title mb-3">Quotation</h3>
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-4">
-                  {/* Breakdown table */}
-                  {order.quoteBreakdown ? (
+                  {bd ? (
                     <>
                       <div className="bg-white border border-orange-100 rounded-xl overflow-hidden">
+                        {/* Per-unit row */}
+                        {bd.pricePerUnit != null && (
+                          <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
+                            <div className="p-3">
+                              <p className="text-xs text-muted-foreground mb-0.5">
+                                Price per Unit
+                              </p>
+                              <p className="text-sm font-bold text-foreground">
+                                ₹{bd.pricePerUnit.toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="p-3">
+                              <p className="text-xs text-muted-foreground mb-0.5">
+                                Quantity
+                              </p>
+                              <p className="text-sm font-bold text-foreground">
+                                {(bd.quantity ?? order.qty).toLocaleString()}{" "}
+                                units
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         <div className="grid grid-cols-2 divide-x divide-border">
                           <div className="p-3 border-b border-border">
                             <p className="text-xs text-muted-foreground mb-0.5">
                               Base Price
                             </p>
                             <p className="text-base font-bold text-foreground">
-                              ₹{order.quoteBreakdown.basePrice.toLocaleString()}
+                              ₹{bd.basePrice.toLocaleString()}
                             </p>
                           </div>
                           <div className="p-3 border-b border-border">
                             <p className="text-xs text-muted-foreground mb-0.5">
-                              GST ({order.quoteBreakdown.gstPercent}%)
+                              GST ({bd.gstPercent}%)
                             </p>
                             <p className="text-base font-bold text-foreground">
-                              ₹{order.quoteBreakdown.gstAmount.toLocaleString()}
+                              ₹{bd.gstAmount.toLocaleString()}
                             </p>
                           </div>
                           <div className="p-3">
@@ -385,8 +402,7 @@ export function CustomerOrderDetailModal({
                               Delivery Charges
                             </p>
                             <p className="text-base font-bold text-foreground">
-                              ₹
-                              {order.quoteBreakdown.deliveryCharges.toLocaleString()}
+                              ₹{bd.deliveryCharges.toLocaleString()}
                             </p>
                           </div>
                           <div className="p-3 bg-orange-50">
@@ -394,8 +410,7 @@ export function CustomerOrderDetailModal({
                               Total Amount
                             </p>
                             <p className="text-xl font-extrabold text-orange-600">
-                              ₹
-                              {order.quoteBreakdown.totalAmount.toLocaleString()}
+                              ₹{bd.totalAmount.toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -456,7 +471,6 @@ export function CustomerOrderDetailModal({
                   </span>
                 </div>
 
-                {/* Amount cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-muted/40 border border-border rounded-xl p-4">
                     <p className="text-xs text-muted-foreground mb-1">
@@ -476,7 +490,6 @@ export function CustomerOrderDetailModal({
                   </div>
                 </div>
 
-                {/* Bank details */}
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
                   <p className="text-xs font-semibold text-blue-900 uppercase tracking-wider mb-3">
                     Bank Details
@@ -521,7 +534,7 @@ export function CustomerOrderDetailModal({
               </motion.section>
             )}
 
-            {/* Advance Payment Submitted — awaiting verification */}
+            {/* Advance Payment Submitted */}
             {isAdvancePending && (
               <motion.section
                 initial={{ opacity: 0, y: 8 }}
@@ -583,7 +596,6 @@ export function CustomerOrderDetailModal({
                   </span>
                 </div>
 
-                {/* Invoice download card */}
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -607,7 +619,6 @@ export function CustomerOrderDetailModal({
                   </button>
                 </div>
 
-                {/* Remaining balance */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-muted/40 border border-border rounded-xl p-4">
                     <p className="text-xs text-muted-foreground mb-1">
@@ -627,7 +638,6 @@ export function CustomerOrderDetailModal({
                   </div>
                 </div>
 
-                {/* Divider */}
                 <div className="flex items-center gap-3 my-4">
                   <div className="flex-1 h-px bg-border" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -636,7 +646,6 @@ export function CustomerOrderDetailModal({
                   <div className="flex-1 h-px bg-border" />
                 </div>
 
-                {/* Bank details */}
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
                   <p className="text-xs font-semibold text-blue-900 uppercase tracking-wider mb-3">
                     Bank Details

@@ -17,7 +17,9 @@ export type QuoteStatus =
   | "cancelled";
 
 export interface QuoteBreakdown {
-  basePrice: number;
+  pricePerUnit: number;
+  quantity: number;
+  basePrice: number; // pricePerUnit * quantity
   gstPercent: number;
   gstAmount: number;
   deliveryCharges: number;
@@ -154,7 +156,6 @@ export function rejectPayment(id: string): void {
   const requests = getQuoteRequests();
   const idx = requests.findIndex((r) => r.id === id);
   if (idx !== -1) {
-    // Revert to accepted if advance was rejected, delivered if final was rejected
     const prevStatus: QuoteStatus =
       requests[idx].paymentInfo?.type === "advance" ? "accepted" : "delivered";
     requests[idx] = {
