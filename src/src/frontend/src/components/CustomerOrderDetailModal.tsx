@@ -28,29 +28,34 @@ interface Props {
 
 const TIMELINE_STEPS = [
   { key: "pending", label: "New Order" },
-  { key: "inReview", label: "Assigned" },
+  { key: "assigned", label: "Assigned" },
   { key: "quoted", label: "Quotation Sent" },
   { key: "accepted", label: "Quote Accepted" },
+  { key: "advancePending", label: "Advance Payment Submitted" },
   { key: "advanceVerified", label: "Advance Payment Verified" },
   { key: "preparing", label: "Preparing" },
   { key: "inTransit", label: "In Transit" },
   { key: "delivered", label: "Delivered" },
-  { key: "finalPaymentPending", label: "Final Payment Pending" },
+  { key: "finalPaymentPending", label: "Final Payment Submitted" },
   { key: "completed", label: "Completed" },
 ];
 
 const STATUS_ORDER = [
   "pending",
   "inReview",
+  "assigned",
   "quoted",
   "accepted",
+  "advancePending",
   "advanceVerified",
   "preparing",
+  "orderPrepared",
   "inProduction",
   "inTransit",
   "shipped",
   "delivered",
   "finalPaymentPending",
+  "finalPaymentVerified",
   "completed",
 ];
 
@@ -173,15 +178,14 @@ export function CustomerOrderDetailModal({
   const statusIdx = STATUS_ORDER.indexOf(status);
   const acceptedIdx = STATUS_ORDER.indexOf("accepted");
   const advanceVerifiedIdx = STATUS_ORDER.indexOf("advanceVerified");
-  const finalPaymentIdx = STATUS_ORDER.indexOf("finalPaymentPending");
+  const _finalPaymentIdx = STATUS_ORDER.indexOf("finalPaymentPending");
   const deliveredIdx = STATUS_ORDER.indexOf("delivered");
 
   const isQuoted = status === "quoted";
   const isAdvanceStage = status === "accepted";
+  const isAdvancePending = status === "advancePending";
   const isAdvanceVerified =
-    statusIdx >= advanceVerifiedIdx &&
-    statusIdx < finalPaymentIdx &&
-    statusIdx < deliveredIdx;
+    statusIdx >= advanceVerifiedIdx && statusIdx < deliveredIdx;
   const isFinalStage =
     status === "finalPaymentPending" ||
     status === "delivered" ||
@@ -576,6 +580,27 @@ export function CustomerOrderDetailModal({
                   submitOcid="customer_order_detail.submit_advance.button"
                   onSubmit={handleAdvanceSubmit}
                 />
+              </motion.section>
+            )}
+
+            {/* Advance Payment Pending (submitted, awaiting verification) */}
+            {isAdvancePending && (
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800">
+                      Advance Payment Submitted
+                    </p>
+                    <p className="text-xs text-blue-600 mt-0.5">
+                      Awaiting admin verification — usually within 2 business
+                      hours.
+                    </p>
+                  </div>
+                </div>
               </motion.section>
             )}
 

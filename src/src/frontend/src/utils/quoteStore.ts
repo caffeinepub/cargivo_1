@@ -1,15 +1,19 @@
 export type QuoteStatus =
   | "pending"
   | "inReview"
+  | "assigned"
   | "quoted"
   | "accepted"
+  | "advancePending"
   | "advanceVerified"
   | "preparing"
+  | "orderPrepared"
   | "inProduction"
   | "inTransit"
   | "shipped"
   | "delivered"
   | "finalPaymentPending"
+  | "finalPaymentVerified"
   | "completed"
   | "cancelled";
 
@@ -84,7 +88,7 @@ export function updateAssignment(id: string, assignedTo: string): void {
   const requests = getQuoteRequests();
   const idx = requests.findIndex((r) => r.id === id);
   if (idx !== -1) {
-    requests[idx] = { ...requests[idx], assignedTo };
+    requests[idx] = { ...requests[idx], assignedTo, status: "assigned" };
     localStorage.setItem(STORE_KEY, JSON.stringify(requests));
   }
 }
@@ -117,6 +121,7 @@ export function submitAdvancePayment(
   if (idx !== -1) {
     requests[idx] = {
       ...requests[idx],
+      status: "advancePending",
       advancePaymentRef: ref,
       advancePaymentFile: fileName,
     };
@@ -134,6 +139,7 @@ export function submitFinalPayment(
   if (idx !== -1) {
     requests[idx] = {
       ...requests[idx],
+      status: "finalPaymentPending",
       finalPaymentRef: ref,
       finalPaymentFile: fileName,
     };

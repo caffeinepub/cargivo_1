@@ -1,4 +1,12 @@
-import { CheckCircle2, ChevronLeft, SendHorizonal } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  Clock,
+  Info,
+  PackageCheck,
+  SendHorizonal,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "../components/ds/StatusBadge";
@@ -12,6 +20,175 @@ interface Props {
 }
 
 const GST_OPTIONS = [5, 12, 18, 28];
+
+// ─── Order Status Flow ──────────────────────────────────────────────────────
+
+type OrderStep = {
+  key: string;
+  label: string;
+};
+
+const ORDER_STEPS: OrderStep[] = [
+  { key: "new", label: "New" },
+  { key: "assigned", label: "Assigned" },
+  { key: "quoted", label: "Quotation Sent" },
+  { key: "accepted", label: "Quote Accepted" },
+  { key: "advancePending", label: "Advance Payment Submitted" },
+  { key: "advanceVerified", label: "Advance Payment Verified" },
+  { key: "preparing", label: "Preparing" },
+  { key: "orderPrepared", label: "Order Prepared" },
+  { key: "inTransit", label: "In Transit" },
+  { key: "delivered", label: "Delivered" },
+  { key: "finalPaymentPending", label: "Final Payment Submitted" },
+  { key: "finalPaymentVerified", label: "Final Payment Verified" },
+  { key: "completed", label: "Completed" },
+];
+
+// Map quoteStore statuses to the step key timeline
+function normalizeStatus(status: string): string {
+  const map: Record<string, string> = {
+    pending: "new",
+    inReview: "new",
+    assigned: "assigned",
+    quoted: "quoted",
+    accepted: "accepted",
+    advancePending: "advancePending",
+    advanceVerified: "advanceVerified",
+    preparing: "preparing",
+    orderPrepared: "orderPrepared",
+    inProduction: "preparing",
+    inTransit: "inTransit",
+    shipped: "inTransit",
+    delivered: "delivered",
+    finalPaymentPending: "finalPaymentPending",
+    finalPaymentVerified: "finalPaymentVerified",
+    completed: "completed",
+    cancelled: "new",
+  };
+  return map[status] ?? status;
+}
+
+function getStepIndex(stepKey: string): number {
+  return ORDER_STEPS.findIndex((s) => s.key === stepKey);
+}
+
+type StepState = "completed" | "active" | "pending";
+
+function getStepState(stepKey: string, currentKey: string): StepState {
+  const stepIdx = getStepIndex(stepKey);
+  const currentIdx = getStepIndex(currentKey);
+  if (stepIdx < currentIdx) return "completed";
+  if (stepIdx === currentIdx) return "active";
+  return "pending";
+}
+
+// ─── Action Button Config ────────────────────────────────────────────────────
+
+type ActionConfig =
+  | { type: "button"; label: string; nextStatus: string }
+  | { type: "wait"; message: string }
+  | { type: "quotation" }
+  | { type: "done" }
+  | null;
+
+function getActionConfig(currentKey: string): ActionConfig {
+  switch (currentKey) {
+    case "new":
+      return { type: "wait", message: "Waiting for Assignment" };
+    case "assigned":
+      return { type: "quotation" };
+    case "quoted":
+      return { type: "wait", message: "Waiting for Customer to Accept" };
+    case "accepted":
+      return { type: "wait", message: "Waiting for Advance Payment" };
+    case "advancePending":
+      return {
+        type: "wait",
+        message: "Payment Submitted — Awaiting Admin Verification",
+      };
+    case "advanceVerified":
+      return {
+        type: "button",
+        label: "Start Preparing",
+        nextStatus: "preparing",
+      };
+    case "preparing":
+      return {
+        type: "button",
+        label: "Mark as Order Prepared",
+        nextStatus: "orderPrepared",
+      };
+    case "orderPrepared":
+      return {
+        type: "button",
+        label: "Mark as In Transit",
+        nextStatus: "inTransit",
+      };
+    case "inTransit":
+      return {
+        type: "button",
+        label: "Mark as Delivered",
+        nextStatus: "delivered",
+      };
+    case "delivered":
+      return {
+        type: "wait",
+        message: "Awaiting Final Payment from Customer",
+      };
+    case "finalPaymentPending":
+      return {
+        type: "wait",
+        message: "Final Payment Submitted — Awaiting Admin Verification",
+      };
+    case "finalPaymentVerified":
+      return {
+        type: "button",
+        label: "Complete Order",
+        nextStatus: "completed",
+      };
+    case "completed":
+      return { type: "done" };
+    default:
+      return null;
+  }
+}
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function StepDot({ state }: { state: StepState }) {
+  if (state === "completed") {
+    return (
+      <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm">
+        <Check size={14} strokeWidth={3} className="text-white" />
+      </div>
+    );
+  }
+  if (state === "active") {
+    return (
+      <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+        <span className="absolute inline-flex w-8 h-8 rounded-full bg-blue-400 opacity-60 animate-ping" />
+        <span className="relative inline-flex w-3 h-3 rounded-full bg-white" />
+      </div>
+    );
+  }
+  return (
+    <div className="relative z-10 flex-shrink-0 w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center">
+      <span className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+    </div>
+  );
+}
+
+function ConnectorLine({ state }: { state: "completed" | "pending" }) {
+  return (
+    <div
+      className={`absolute left-[14px] top-8 w-0.5 h-full transition-all duration-500 ${
+        state === "completed" ? "bg-emerald-400" : "bg-gray-200"
+      }`}
+    />
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 export function TeamOrderDetail({ order, onBack }: Props) {
   const [basePrice, setBasePrice] = useState("");
@@ -28,6 +205,10 @@ export function TeamOrderDetail({ order, onBack }: Props) {
 
   const isQuoteAlreadySent = quoteSent || !!order.quoteBreakdown;
 
+  // Normalize current status to step key
+  const currentStepKey = normalizeStatus(order.status);
+  const actionConfig = getActionConfig(currentStepKey);
+
   function handleSendQuotation() {
     if (!basePriceNum || basePriceNum <= 0) return;
     const breakdown: QuoteBreakdown = {
@@ -42,6 +223,15 @@ export function TeamOrderDetail({ order, onBack }: Props) {
     toast.success("Quotation sent to customer!");
   }
 
+  function handleActionButton(nextStatus: string) {
+    updateOrderStatus(
+      order.id.toString(),
+      nextStatus as Parameters<typeof updateOrderStatus>[1],
+    );
+    toast.success("Status updated successfully");
+    onBack();
+  }
+
   const handleSaveTracking = () => {
     if (!transportPartner && !trackingLink) {
       toast.error("Please fill in tracking details");
@@ -50,7 +240,6 @@ export function TeamOrderDetail({ order, onBack }: Props) {
     toast.success("Tracking info saved");
   };
 
-  // Resolve the quote breakdown to display (either from state or from order)
   const displayBreakdown: QuoteBreakdown | null = order.quoteBreakdown ?? null;
 
   return (
@@ -140,7 +329,10 @@ export function TeamOrderDetail({ order, onBack }: Props) {
       </div>
 
       {/* Section 2: Send Quotation */}
-      <div className="bg-white border border-border rounded-xl shadow-card p-6">
+      <div
+        id="quotation-section"
+        className="bg-white border border-border rounded-xl shadow-card p-6"
+      >
         <div className="border-l-4 border-orange-500 pl-3 mb-5">
           <h2 className="text-base font-semibold text-foreground">
             Send Quotation
@@ -368,59 +560,268 @@ export function TeamOrderDetail({ order, onBack }: Props) {
         )}
       </div>
 
-      {/* Section 3: Status Update */}
-      <div className="bg-white border border-border rounded-xl shadow-card p-6">
-        <h2 className="text-base font-semibold text-foreground mb-4">
-          Update Status
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              updateOrderStatus(order.id.toString(), "preparing");
-              toast.success("Status updated to Preparing Order");
-              onBack();
-            }}
-            data-ocid="team_order_detail.secondary_button"
-          >
-            Preparing Order
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              updateOrderStatus(order.id.toString(), "orderPrepared");
-              toast.success("Status updated to Order Prepared");
-              onBack();
-            }}
-          >
-            Order Prepared
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              updateOrderStatus(order.id.toString(), "inTransit");
-              toast.success("Status updated to In Transit");
-              onBack();
-            }}
-          >
-            In Transit
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              updateOrderStatus(order.id.toString(), "delivered");
-              toast.success("Status updated to Delivered");
-              onBack();
-            }}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
-          >
-            Delivered
-          </button>
+      {/* Section 3: Order Progress + Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* ── Order Progress Timeline ── */}
+        <div
+          className="lg:col-span-3 bg-white border border-border rounded-xl shadow-card p-6"
+          data-ocid="team_order_detail.panel"
+        >
+          <h2 className="text-base font-semibold text-foreground mb-6">
+            Order Progress
+          </h2>
+          <div className="relative">
+            {ORDER_STEPS.map((step, index) => {
+              const state = getStepState(step.key, currentStepKey);
+              const isLast = index === ORDER_STEPS.length - 1;
+              const prevStepCompleted =
+                index > 0 &&
+                getStepState(ORDER_STEPS[index - 1].key, currentStepKey) ===
+                  "completed";
+
+              return (
+                <div key={step.key} className="relative flex items-start gap-4">
+                  {/* Vertical connector (not on last item) */}
+                  {!isLast && (
+                    <ConnectorLine
+                      state={state === "completed" ? "completed" : "pending"}
+                    />
+                  )}
+
+                  {/* Step dot */}
+                  <StepDot state={state} />
+
+                  {/* Step content */}
+                  <div
+                    className={`pb-7 ${isLast ? "pb-0" : ""} flex-1 min-w-0`}
+                  >
+                    <p
+                      className={`text-sm font-semibold leading-tight transition-colors duration-300 ${
+                        state === "completed"
+                          ? "text-emerald-700"
+                          : state === "active"
+                            ? "text-blue-700"
+                            : "text-gray-400"
+                      }`}
+                    >
+                      {step.label}
+                    </p>
+                    {state === "active" && (
+                      <p className="text-xs text-blue-500 mt-0.5 font-medium">
+                        Current status
+                      </p>
+                    )}
+                    {state === "completed" &&
+                      prevStepCompleted === false &&
+                      index > 0 && (
+                        <p className="text-xs text-emerald-500 mt-0.5">
+                          Completed
+                        </p>
+                      )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Actions Panel ── */}
+        <div className="lg:col-span-2 bg-white border border-border rounded-xl shadow-card p-6 flex flex-col">
+          <h2 className="text-base font-semibold text-foreground mb-4">
+            Actions
+          </h2>
+
+          {actionConfig === null && (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-sm text-muted-foreground text-center">
+                No actions available for this status.
+              </p>
+            </div>
+          )}
+
+          {actionConfig?.type === "done" && (
+            <div
+              className="flex-1 flex flex-col items-center justify-center gap-4 bg-emerald-50 border border-emerald-200 rounded-xl p-6"
+              data-ocid="team_order_detail.success_state"
+            >
+              <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+                <PackageCheck size={28} className="text-emerald-600" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-emerald-800">
+                  Order Completed Successfully
+                </p>
+                <p className="text-xs text-emerald-600 mt-1">
+                  This order has been fully processed.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {actionConfig?.type === "wait" && (
+            <div
+              className="flex-1 flex flex-col justify-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-5"
+              data-ocid="team_order_detail.loading_state"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Clock size={16} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">Waiting</p>
+                  <p className="text-xs text-blue-600 mt-1 leading-relaxed">
+                    {actionConfig.message}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-blue-100/60 rounded-lg px-3 py-2 mt-1">
+                <Info size={13} className="text-blue-500 flex-shrink-0" />
+                <p className="text-xs text-blue-700">
+                  No action required from you right now.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {actionConfig?.type === "quotation" && (
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Info size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800">
+                      Quotation Required
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1 leading-relaxed">
+                      Fill in the quotation details in the{" "}
+                      <strong>Send Quotation</strong> section above and send it
+                      to the customer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-sm"
+                onClick={() => {
+                  const el = document.getElementById("quotation-section");
+                  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                data-ocid="team_order_detail.primary_button"
+              >
+                <SendHorizonal size={15} />
+                Go to Send Quotation
+              </button>
+            </div>
+          )}
+
+          {actionConfig?.type === "button" && (
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-1">
+                  Next Step
+                </p>
+                <p className="text-sm text-blue-800 leading-relaxed">
+                  Click the button below to advance this order to the next
+                  stage.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="w-full py-3.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-sm cursor-pointer"
+                onClick={() => handleActionButton(actionConfig.nextStatus)}
+                data-ocid="team_order_detail.primary_button"
+              >
+                <Check size={15} strokeWidth={2.5} />
+                {actionConfig.label}
+              </button>
+
+              {/* Completed steps summary */}
+              <div className="mt-auto pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-emerald-600">
+                    {getStepIndex(currentStepKey)}
+                  </span>{" "}
+                  of {ORDER_STEPS.length} steps completed
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Completed steps: disabled button previews */}
+      {currentStepKey !== "new" &&
+        currentStepKey !== "assigned" &&
+        currentStepKey !== "quoted" &&
+        currentStepKey !== "completed" && (
+          <div className="bg-white border border-border rounded-xl shadow-card p-6">
+            <h2 className="text-base font-semibold text-foreground mb-4">
+              All Process Steps
+            </h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Color indicates step status. Only the current step (blue) is
+              actionable.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: "Send Quotation", step: "assigned" },
+                { label: "Start Preparing", step: "advanceVerified" },
+                { label: "Mark as Order Prepared", step: "preparing" },
+                { label: "Mark as In Transit", step: "orderPrepared" },
+                { label: "Mark as Delivered", step: "inTransit" },
+                { label: "Complete Order", step: "finalPaymentVerified" },
+              ].map(({ label, step }) => {
+                const btnState = getStepState(step, currentStepKey);
+                const isActive = btnState === "active";
+                const isCompleted = btnState === "completed";
+
+                return (
+                  <button
+                    key={step}
+                    type="button"
+                    disabled={!isActive}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 pointer-events-none ${
+                      isCompleted
+                        ? "bg-emerald-500 text-white opacity-80 cursor-not-allowed"
+                        : isActive
+                          ? "bg-blue-600 text-white cursor-pointer pointer-events-auto"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                    data-ocid={"team_order_detail.secondary_button"}
+                  >
+                    {isCompleted ? (
+                      <Check size={13} strokeWidth={3} />
+                    ) : isActive ? (
+                      <span className="w-2 h-2 rounded-full bg-white" />
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-gray-300" />
+                    )}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-blue-600" />
+                <span className="text-xs text-muted-foreground">
+                  Active (clickable)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="text-xs text-muted-foreground">Completed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-gray-200" />
+                <span className="text-xs text-muted-foreground">Pending</span>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Section 4: Tracking */}
       <div className="bg-white border border-border rounded-xl shadow-card p-6">
