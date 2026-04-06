@@ -344,7 +344,7 @@ export function TeamOrderDetail({ order, onBack }: Props) {
           </div>
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              Dimensions
+              Dimensions (mm)
             </p>
             <p className="text-sm font-medium text-foreground">
               {order.dimensions ?? "—"}

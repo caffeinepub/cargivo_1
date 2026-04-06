@@ -50,7 +50,7 @@ export function QuoteRequestModal({
     }
     setIsSubmitting(true);
     try {
-      const desc = `${boxType} | ${length}x${width}x${height}cm | ${description}`;
+      const desc = `${boxType} | ${length}x${width}x${height}mm | ${description}`;
       await actor.submitQuoteRequest([
         { description: desc, quantity: BigInt(Number(quantity)) },
       ]);
@@ -95,7 +95,7 @@ export function QuoteRequestModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Dimensions (cm)</Label>
+            <Label>Dimensions (mm)</Label>
             <div className="grid grid-cols-3 gap-2">
               <Input
                 placeholder="Length"

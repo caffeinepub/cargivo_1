@@ -66,7 +66,7 @@ const CUSTOMER_FIELDS = [
 const ORDER_FIELDS = [
   { id: "boxType", label: "Box Type" },
   { id: "location", label: "Delivery Location" },
-  { id: "dimensions", label: "Dimensions" },
+  { id: "dimensions", label: "Dimensions (mm)" },
   { id: "quantity", label: "Quantity" },
 ];
 

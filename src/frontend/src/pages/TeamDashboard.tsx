@@ -72,7 +72,7 @@ export function TeamDashboard({ currentUserName }: Props) {
     location: `${q.deliveryCity}, ${q.deliveryState}`,
     dimensions:
       q.length && q.width && q.height
-        ? `${q.length} × ${q.width} × ${q.height} cm`
+        ? `${q.length} × ${q.width} × ${q.height} mm`
         : undefined,
     assignedTo: q.assignedTo,
   }));
