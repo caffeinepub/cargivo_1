@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import type { SampleOrder } from "../pages/sampleData";
 import { submitPayment } from "../utils/quoteStore";
 import { InvoicePrint } from "./InvoicePrint";
+import { QuotationPrint } from "./QuotationPrint";
 import { StatusBadge } from "./StatusBadge";
 
 interface Props {
@@ -168,6 +169,7 @@ export function CustomerOrderDetailModal({
   const [advanceFile, setAdvanceFile] = useState<string | null>(null);
   const [finalFile, setFinalFile] = useState<string | null>(null);
   const [showInvoicePrint, setShowInvoicePrint] = useState(false);
+  const [showQuotationPrint, setShowQuotationPrint] = useState(false);
 
   if (!order) return null;
 
@@ -315,6 +317,7 @@ export function CustomerOrderDetailModal({
                       <button
                         type="button"
                         className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                        onClick={() => setShowQuotationPrint(true)}
                         data-ocid="customer_order_detail.download_button"
                       >
                         <Download size={13} />
@@ -799,6 +802,13 @@ export function CustomerOrderDetailModal({
         <InvoicePrint
           order={order}
           onClose={() => setShowInvoicePrint(false)}
+        />
+      )}
+
+      {showQuotationPrint && (
+        <QuotationPrint
+          order={order}
+          onClose={() => setShowQuotationPrint(false)}
         />
       )}
     </>

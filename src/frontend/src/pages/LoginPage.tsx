@@ -78,11 +78,12 @@ export function LoginPage({
           {view === "login" && (
             <>
               <div className="text-center mb-6">
-                <div className="inline-flex items-center gap-2 mb-3">
-                  <span className="text-3xl">📦</span>
-                  <span className="text-2xl font-bold text-primary tracking-tight">
-                    Cargivo
-                  </span>
+                <div className="flex justify-center mb-3">
+                  <img
+                    src="/assets/cargivo_logo_with_motion_trails-019d63b3-52a1-75fa-9cf1-89618e3c864c.png"
+                    alt="Cargivo"
+                    className="h-12 object-contain mx-auto"
+                  />
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">Login</h1>
                 <p className="text-sm text-gray-500">Access your account</p>
@@ -358,11 +359,12 @@ export function LoginPage({
               </button>
 
               <div className="text-center mb-6">
-                <div className="inline-flex items-center gap-2 mb-3">
-                  <span className="text-3xl">📦</span>
-                  <span className="text-2xl font-bold text-primary tracking-tight">
-                    Cargivo
-                  </span>
+                <div className="flex justify-center mb-3">
+                  <img
+                    src="/assets/cargivo_logo_with_motion_trails-019d63b3-52a1-75fa-9cf1-89618e3c864c.png"
+                    alt="Cargivo"
+                    className="h-12 object-contain mx-auto"
+                  />
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">
                   Reset Password

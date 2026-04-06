@@ -44,7 +44,7 @@ export function InvoicePrint({ order, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center overflow-y-auto py-6 px-4"
+      className="fixed inset-0 z-[200] bg-black/60 flex items-start justify-center overflow-y-auto py-6 px-4"
       data-ocid="invoice.modal"
     >
       <style>{`

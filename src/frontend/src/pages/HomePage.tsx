@@ -130,10 +130,11 @@ export function HomePage({ onLoginClick, onSignupClick }: HomePageProps) {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-2xl">📦</span>
-            <span className="text-xl font-bold text-primary tracking-tight">
-              Cargivo
-            </span>
+            <img
+              src="/assets/cargivo_logo_with_motion_trails-019d63b3-52a1-75fa-9cf1-89618e3c864c.png"
+              alt="Cargivo"
+              className="h-9 object-contain"
+            />
           </div>
 
           {/* Desktop Nav — anchor links only */}
@@ -521,8 +522,11 @@ export function HomePage({ onLoginClick, onSignupClick }: HomePageProps) {
           {/* Logo + tagline */}
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">📦</span>
-              <span className="text-xl font-bold text-white">Cargivo</span>
+              <img
+                src="/assets/cargivo_logo_with_motion_trails-019d63b3-52a1-75fa-9cf1-89618e3c864c.png"
+                alt="Cargivo"
+                className="h-8 object-contain"
+              />
             </div>
             <p className="text-sm text-gray-400 max-w-xs">
               Custom cargo box quotes, fast and easy.

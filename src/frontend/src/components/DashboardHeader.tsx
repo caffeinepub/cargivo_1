@@ -36,10 +36,11 @@ export function DashboardHeader({
       </button>
 
       <div className="flex items-center gap-2">
-        <span className="text-lg">📦</span>
-        <span className="font-bold text-primary text-lg tracking-tight">
-          Cargivo
-        </span>
+        <img
+          src="/assets/cargivo_logo_with_motion_trails-019d63b3-52a1-75fa-9cf1-89618e3c864c.png"
+          alt="Cargivo"
+          className="h-8 object-contain"
+        />
       </div>
 
       <div className="flex-1" />

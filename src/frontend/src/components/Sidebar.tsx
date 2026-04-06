@@ -95,13 +95,20 @@ export function Sidebar({
       <div className="flex items-center justify-between px-4 py-5 border-b border-sidebar-border">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <span className="text-2xl">📦</span>
-            <span className="text-lg font-bold text-white tracking-tight">
-              Cargivo
-            </span>
+            <img
+              src="/assets/cargivo_logo_with_motion_trails-019d63b3-52a1-75fa-9cf1-89618e3c864c.png"
+              alt="Cargivo"
+              className="h-8 object-contain"
+            />
           </div>
         )}
-        {collapsed && <span className="text-2xl mx-auto">📦</span>}
+        {collapsed && (
+          <img
+            src="/assets/cargivo_logo_with_motion_trails-019d63b3-52a1-75fa-9cf1-89618e3c864c.png"
+            alt="Cargivo"
+            className="h-7 w-7 object-contain mx-auto"
+          />
+        )}
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
